@@ -106,7 +106,7 @@ export default function SubscribePage() {
         const options: Record<string, unknown> = {
           key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
           subscription_id: subscriptionId,   // ← subscription, not order
-          name: "NextArch Precision",
+          name: "Ventwise Precision",
           description: label,
           theme: { color: planId === "monthly" ? "#2563eb" : "#7c3aed" },
           modal: {
@@ -165,7 +165,7 @@ export default function SubscribePage() {
 
         <div className="sub-logo">
           <PieChart size={22} color="#3b82f6" strokeWidth={1.75} />
-          <span>NextArch</span>
+          <span>Ventwise</span>
         </div>
 
         <button
@@ -198,7 +198,7 @@ export default function SubscribePage() {
 
         <h1 className="sub-heading">Choose Your Plan</h1>
         <p className="sub-subheading">
-          Unlock unlimited access to NextArch Precision calculators.
+          Unlock unlimited access to Ventwise Precision calculators.
           <br />
           Try free for 7 days — cancel anytime.
         </p>

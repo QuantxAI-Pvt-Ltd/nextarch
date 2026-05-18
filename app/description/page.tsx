@@ -161,7 +161,7 @@ export default function Description() {
       <nav className="dp-nav">
         <div className="dp-logo">
           <PieChart size={26} color="#3b82f6" strokeWidth={1.75} style={{ flexShrink: 0 }} />
-          <span className="dp-logo-name">NextArch Precision</span>
+          <span className="dp-logo-name">Ventwise Precision</span>
         </div>
         <div className="dp-nav-right">
           <Link href="/login" className="dp-nav-cta" style={{ textDecoration: 'none' }}>

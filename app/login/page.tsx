@@ -60,7 +60,7 @@ function LoginInner() {
           <div className="login-logo-icon">
             <PieChart size={30} color="#3b82f6" strokeWidth={1.75} />
           </div>
-          <span className="login-logo-title">NextArch</span>
+          <span className="login-logo-title">Ventwise</span>
         </div>
 
 

@@ -38,7 +38,7 @@ export function Sidebar() {
         <>
             {/* Mobile Overlay */}
             {isMobileOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300"
                     onClick={() => setIsMobileOpen(false)}
                 />
@@ -64,7 +64,7 @@ export function Sidebar() {
                 </button>
 
                 {/* Mobile Close Button */}
-                <button 
+                <button
                     onClick={() => setIsMobileOpen(false)}
                     className="absolute right-4 top-4 md:hidden text-gray-400 hover:text-white"
                 >
@@ -78,7 +78,7 @@ export function Sidebar() {
                     </div>
                     {!isCollapsed && (
                         <span className="ml-3 font-bold text-lg tracking-tight" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>
-                            NextArch
+                            Ventwise
                         </span>
                     )}
                 </div>

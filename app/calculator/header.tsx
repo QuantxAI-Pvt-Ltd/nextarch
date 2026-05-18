@@ -53,8 +53,8 @@ export function Header() {
     // Derive plan info
     const planLabel =
         usage?.plan === "monthly" ? "Monthly Plan" :
-        usage?.plan === "quarterly" ? "Quarterly Plan" :
-        null;
+            usage?.plan === "quarterly" ? "Quarterly Plan" :
+                null;
 
     const expiryDate = usage?.planExpiresAt
         ? new Date(usage.planExpiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
@@ -65,12 +65,12 @@ export function Header() {
         ? usage.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
         : "?";
 
-    const subStatusColor   = usage?.planActive ? "#a78bfa" : usage?.trialActive ? "#22c55e" : "#f87171";
-    const subStatusLabel   = usage?.planActive && planLabel
+    const subStatusColor = usage?.planActive ? "#a78bfa" : usage?.trialActive ? "#22c55e" : "#f87171";
+    const subStatusLabel = usage?.planActive && planLabel
         ? planLabel
         : usage?.trialActive
-        ? `Trial · ${usage.trialDaysLeft}d left`
-        : "Trial expired";
+            ? `Trial · ${usage.trialDaysLeft}d left`
+            : "Trial expired";
 
     return (
         <header
@@ -100,7 +100,7 @@ export function Header() {
                 </div>
                 <span className="text-lg md:text-xl font-bold truncate"
                     style={{ color: isDark ? "#ffffff" : "#1e293b", transition: "color 0.3s" }}>
-                    NextArch Precision
+                    Ventwise Precision
                 </span>
             </div>
 
@@ -186,7 +186,7 @@ export function Header() {
                             <div className="mx-3 border-t" style={{ borderColor: isDark ? "#334155" : "#e2e8f0" }} />
                             <div className="px-4 py-2.5">
                                 <p className="text-[10px] font-mono" style={{ color: isDark ? "#475569" : "#94a3b8" }}>
-                                    NextArch Precision v1.4.2-stable
+                                    Ventwise Precision v1.4.2-stable
                                 </p>
                             </div>
                         </div>
@@ -202,8 +202,8 @@ export function Header() {
                             background: usage?.planActive
                                 ? "linear-gradient(135deg,#7c3aed,#a855f7)"
                                 : usage?.trialActive
-                                ? "linear-gradient(135deg,#1A73E8,#2563eb)"
-                                : "linear-gradient(135deg,#dc2626,#9333ea)",
+                                    ? "linear-gradient(135deg,#1A73E8,#2563eb)"
+                                    : "linear-gradient(135deg,#dc2626,#9333ea)",
                             color: "#fff",
                             "--tw-ring-color": isDark ? "#334155" : "#e2e8f0",
                             "--tw-ring-offset-color": isDark ? "#0B1221" : "#ffffff",
@@ -262,16 +262,16 @@ export function Header() {
                                         background: usage?.planActive
                                             ? "rgba(124,58,237,0.08)"
                                             : usage?.trialActive
-                                            ? "rgba(34,197,94,0.07)"
-                                            : "rgba(239,68,68,0.07)",
+                                                ? "rgba(34,197,94,0.07)"
+                                                : "rgba(239,68,68,0.07)",
                                         border: `1px solid ${usage?.planActive ? "rgba(124,58,237,0.25)" : usage?.trialActive ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
                                     }}>
                                     <div className="flex items-center gap-2">
                                         {usage?.planActive
                                             ? <Crown size={15} color="#a78bfa" />
                                             : usage?.trialActive
-                                            ? <Clock size={15} color="#22c55e" />
-                                            : <Zap size={15} color="#f87171" />
+                                                ? <Clock size={15} color="#22c55e" />
+                                                : <Zap size={15} color="#f87171" />
                                         }
                                         <span className="text-sm font-semibold" style={{ color: subStatusColor }}>
                                             {subStatusLabel}
