@@ -213,7 +213,6 @@ export default function Description() {
                 </div>
                 <span className="dp-card-title">Standards &amp; References</span>
               </div>
-              <span className="dp-card-db">DATABASE V2.4</span>
             </div>
 
             <div className="dp-std-list">
