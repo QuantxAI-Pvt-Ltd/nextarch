@@ -245,52 +245,78 @@ export default function Voaqwqtforce() {
                                         {/* Year */}
                                         <div className="space-y-1">
                                             <Label className="text-xs" style={{ color: labelColor }}>Year</Label>
-                                            <select
-                                                className="w-full rounded-lg text-sm px-3 py-2 outline-none"
-                                                style={{ background: selectBg, border: cardBorder, color: titleColor }}
-                                                value={selectedDate.year}
-                                                onChange={(e) => handleYearChange(Number(e.target.value))}
-                                            >
-                                                {epwYears.map(year => <option key={year} value={year}>{year}</option>)}
-                                            </select>
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full rounded-lg text-sm px-3 py-2 outline-none appearance-none pr-8"
+                                                    style={{ background: selectBg, border: cardBorder, color: titleColor }}
+                                                    value={selectedDate.year}
+                                                    onChange={(e) => handleYearChange(Number(e.target.value))}
+                                                >
+                                                    {epwYears.map(year => (
+                                                        <option key={year} value={year} style={{ background: selectBg, color: titleColor }}>{year}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: labelColor }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                </div>
+                                            </div>
                                         </div>
                                         {/* Month — full names, only available months */}
                                         <div className="space-y-1">
                                             <Label className="text-xs" style={{ color: labelColor }}>Month</Label>
-                                            <select
-                                                className="w-full rounded-lg text-sm px-3 py-2 outline-none"
-                                                style={{ background: selectBg, border: cardBorder, color: titleColor }}
-                                                value={selectedDate.month}
-                                                onChange={(e) => handleMonthChange(Number(e.target.value))}
-                                            >
-                                                {availableMonths.map(m => (
-                                                    <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>
-                                                ))}
-                                            </select>
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full rounded-lg text-sm px-3 py-2 outline-none appearance-none pr-8"
+                                                    style={{ background: selectBg, border: cardBorder, color: titleColor }}
+                                                    value={selectedDate.month}
+                                                    onChange={(e) => handleMonthChange(Number(e.target.value))}
+                                                >
+                                                    {availableMonths.map(m => (
+                                                        <option key={m} value={m} style={{ background: selectBg, color: titleColor }}>{MONTH_NAMES[m - 1]}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: labelColor }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                </div>
+                                            </div>
                                         </div>
                                         {/* Day — only days that exist in selected year+month */}
                                         <div className="space-y-1">
                                             <Label className="text-xs" style={{ color: labelColor }}>Day</Label>
-                                            <select
-                                                className="w-full rounded-lg text-sm px-3 py-2 outline-none"
-                                                style={{ background: selectBg, border: cardBorder, color: titleColor }}
-                                                value={selectedDate.day}
-                                                onChange={(e) => handleDayChange(Number(e.target.value))}
-                                            >
-                                                {availableDays.map(d => <option key={d} value={d}>{d}</option>)}
-                                            </select>
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full rounded-lg text-sm px-3 py-2 outline-none appearance-none pr-8"
+                                                    style={{ background: selectBg, border: cardBorder, color: titleColor }}
+                                                    value={selectedDate.day}
+                                                    onChange={(e) => handleDayChange(Number(e.target.value))}
+                                                >
+                                                    {availableDays.map(d => (
+                                                        <option key={d} value={d} style={{ background: selectBg, color: titleColor }}>{d}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: labelColor }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                </div>
+                                            </div>
                                         </div>
-                                        {/* Hour — only hours that exist for selected year+month+day */}
+                                        {/* Time — only hours that exist for selected year+month+day */}
                                         <div className="space-y-1">
                                             <Label className="text-xs" style={{ color: labelColor }}>Time</Label>
-                                            <select
-                                                className="w-full rounded-lg text-sm px-3 py-2 outline-none"
-                                                style={{ background: selectBg, border: cardBorder, color: titleColor }}
-                                                value={selectedDate.hour}
-                                                onChange={(e) => setSelectedDate(prev => ({ ...prev, hour: Number(e.target.value) }))}
-                                            >
-                                                {availableHours.map(hv => <option key={hv} value={hv}>{formatHour(hv)}</option>)}
-                                            </select>
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full rounded-lg text-sm px-3 py-2 outline-none appearance-none pr-8"
+                                                    style={{ background: selectBg, border: cardBorder, color: titleColor }}
+                                                    value={selectedDate.hour}
+                                                    onChange={(e) => setSelectedDate(prev => ({ ...prev, hour: Number(e.target.value) }))}
+                                                >
+                                                    {availableHours.map(hv => (
+                                                        <option key={hv} value={hv} style={{ background: selectBg, color: titleColor }}>{formatHour(hv)}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: labelColor }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
