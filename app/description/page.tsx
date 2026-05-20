@@ -161,7 +161,7 @@ export default function Description() {
       <nav className="dp-nav">
         <div className="dp-logo">
           <PieChart size={26} color="#3b82f6" strokeWidth={1.75} style={{ flexShrink: 0 }} />
-          <span className="dp-logo-name">Ventwise Precision</span>
+          <span className="dp-logo-name">Ventwise</span>
         </div>
         <div className="dp-nav-right">
           <Link href="/login" className="dp-nav-cta" style={{ textDecoration: 'none' }}>
@@ -198,12 +198,7 @@ export default function Description() {
                 </svg>
                 Go to Calculator
               </Link>
-              <button className="dp-btn-secondary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-                View Guide
-              </button>
+
             </div>
           </div>
 
