@@ -1,6 +1,12 @@
 // Allow importing CSS files
 declare module "*.css"
 
+// Razorpay Checkout (loaded via CDN script)
+interface Window {
+  Razorpay: new (options: Record<string, unknown>) => { open: () => void };
+}
+
+
 // Fix missing types for react-katex
 declare module "react-katex" {
   import * as React from "react"

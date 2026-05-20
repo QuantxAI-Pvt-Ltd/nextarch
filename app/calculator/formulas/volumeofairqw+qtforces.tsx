@@ -46,7 +46,7 @@ export default function Voaqwqtforce() {
         setEpwMessage("Uploading...");
         setEpwUploaded(false);
         try {
-            const response = await fetch('http://localhost:8000/api/upload-epw', { method: 'POST', body: formData });
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload-epw`, { method: 'POST', body: formData });
             const data = await response.json();
             if (data.success) {
                 setEpwUploaded(true);
@@ -65,7 +65,7 @@ export default function Voaqwqtforce() {
 
     const handleFetchEpwData = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/query-epw', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/query-epw`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(selectedDate),
