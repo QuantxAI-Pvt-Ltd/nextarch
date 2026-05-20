@@ -220,7 +220,7 @@ export default function Description() {
                 {
                   icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9,22 9,12 15,12 15,22" /></svg>,
                   code: "SP 41",
-                  desc: "Handbook on Functional Requirements of Buildings (Other than Industrial Buildings)"
+                  desc: "Handbook on functional requirements for all building typologies (except industrial buildings)"
                 },
                 {
                   icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>,
