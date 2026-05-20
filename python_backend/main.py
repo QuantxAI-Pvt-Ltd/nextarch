@@ -414,22 +414,41 @@ async def upload_epw(file: UploadFile = File(...)):
         
         
         unique_years = sorted(df['Year'].unique().tolist())
-        
+
         # Get available months for each year to display like in the streamlit app
         year_month_data = {}
         month_names = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December']
-        
+
         for year in unique_years:
             months_in_year = sorted(df[df['Year'] == year]['Month'].unique().tolist())
             month_name_list = [month_names[m-1] for m in months_in_year]
             year_month_data[str(year)] = month_name_list
-        
+
+        # Build a fully nested structure: year → month → { days, hours_by_day }
+        # Keys are strings so they serialise cleanly to JSON.
+        available_data: dict = {}
+        for year in unique_years:
+            year_df = df[df['Year'] == year]
+            available_data[str(year)] = {}
+            for month in sorted(year_df['Month'].unique().tolist()):
+                month_df = year_df[year_df['Month'] == month]
+                days = sorted(month_df['Day'].unique().tolist())
+                hours_by_day: dict = {}
+                for day in days:
+                    hours = sorted(month_df[month_df['Day'] == day]['Hour'].unique().tolist())
+                    hours_by_day[str(day)] = hours
+                available_data[str(year)][str(month)] = {
+                    "days": days,
+                    "hours_by_day": hours_by_day
+                }
+
         return {
             "success": True,
-            "message": f"EPW file uploaded successfully",
+            "message": "EPW file uploaded successfully",
             "years": unique_years,
             "year_month_data": year_month_data,
+            "available_data": available_data,
             "total_records": len(df)
         }
     except Exception as e:
