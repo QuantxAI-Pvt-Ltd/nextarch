@@ -100,7 +100,7 @@ export function Header() {
                 </div>
                 <span className="text-lg md:text-xl font-bold truncate"
                     style={{ color: isDark ? "#ffffff" : "#1e293b", transition: "color 0.3s" }}>
-                    Ventwise Precision
+                    Ventwise
                 </span>
             </div>
 
@@ -186,7 +186,7 @@ export function Header() {
                             <div className="mx-3 border-t" style={{ borderColor: isDark ? "#334155" : "#e2e8f0" }} />
                             <div className="px-4 py-2.5">
                                 <p className="text-[10px] font-mono" style={{ color: isDark ? "#475569" : "#94a3b8" }}>
-                                    Ventwise Precision v1.4.2-stable
+                                    Ventwise v1.4.2-stable
                                 </p>
                             </div>
                         </div>
