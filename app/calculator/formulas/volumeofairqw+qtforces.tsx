@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MetricCard, ResultCard } from "../dashboard-components";
 import { Button } from "@/components/ui/button";
 import { Upload, Wind, Info, ArrowLeft } from "lucide-react";
@@ -8,6 +8,18 @@ import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "../theme-context";
+
+const MONTH_NAMES = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
+
+interface AvailableMonthData {
+    days: number[];
+    hours_by_day: Record<string, number[]>;
+}
+
+type AvailableData = Record<string, Record<string, AvailableMonthData>>;
 
 interface ResultData {
     Qt: number;
@@ -29,7 +41,49 @@ export default function Voaqwqtforce() {
     const [epwYears, setEpwYears] = useState<number[]>([]);
     const [selectedDate, setSelectedDate] = useState({ year: 2024, month: 1, day: 1, hour: 12 });
     const [epwData, setEpwData] = useState<Record<string, string[]>>({});
+    const [availableData, setAvailableData] = useState<AvailableData>({});
     const [epwMessage, setEpwMessage] = useState("");
+
+    // --- Derived option lists (cascade from selected year → month → day) ---
+    const availableMonths = useMemo(() => {
+        const yr = availableData[String(selectedDate.year)];
+        if (!yr) return [];
+        return Object.keys(yr).map(Number).sort((a, b) => a - b);
+    }, [availableData, selectedDate.year]);
+
+    const availableDays = useMemo(() => {
+        const mo = availableData[String(selectedDate.year)]?.[String(selectedDate.month)];
+        return mo ? mo.days : [];
+    }, [availableData, selectedDate.year, selectedDate.month]);
+
+    const availableHours = useMemo(() => {
+        const mo = availableData[String(selectedDate.year)]?.[String(selectedDate.month)];
+        return mo ? (mo.hours_by_day[String(selectedDate.day)] ?? []) : [];
+    }, [availableData, selectedDate.year, selectedDate.month, selectedDate.day]);
+
+    // --- Cascading change handlers ---
+    const handleYearChange = (year: number) => {
+        const yr = availableData[String(year)];
+        if (!yr) { setSelectedDate(prev => ({ ...prev, year })); return; }
+        const firstMonth = Math.min(...Object.keys(yr).map(Number));
+        const mo = yr[String(firstMonth)];
+        const firstDay = mo?.days[0] ?? 1;
+        const firstHour = mo?.hours_by_day[String(firstDay)]?.[0] ?? 1;
+        setSelectedDate({ year, month: firstMonth, day: firstDay, hour: firstHour });
+    };
+
+    const handleMonthChange = (month: number) => {
+        const mo = availableData[String(selectedDate.year)]?.[String(month)];
+        const firstDay = mo?.days[0] ?? 1;
+        const firstHour = mo?.hours_by_day[String(firstDay)]?.[0] ?? 1;
+        setSelectedDate(prev => ({ ...prev, month, day: firstDay, hour: firstHour }));
+    };
+
+    const handleDayChange = (day: number) => {
+        const mo = availableData[String(selectedDate.year)]?.[String(selectedDate.month)];
+        const firstHour = mo?.hours_by_day[String(day)]?.[0] ?? 1;
+        setSelectedDate(prev => ({ ...prev, day, hour: firstHour }));
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -52,7 +106,18 @@ export default function Voaqwqtforce() {
                 setEpwUploaded(true);
                 setEpwYears(data.years || []);
                 setEpwData(data.year_month_data || {});
-                setSelectedDate(prev => ({ ...prev, year: data.years[0] || 2024 }));
+                setAvailableData(data.available_data || {});
+
+                // Auto-select first valid year → month → day → hour
+                const firstYear: number = data.years?.[0] ?? 2024;
+                const ad: AvailableData = data.available_data || {};
+                const yrData = ad[String(firstYear)] ?? {};
+                const firstMonth = Math.min(...Object.keys(yrData).map(Number)) || 1;
+                const moData = yrData[String(firstMonth)];
+                const firstDay = moData?.days[0] ?? 1;
+                const firstHour = moData?.hours_by_day[String(firstDay)]?.[0] ?? 1;
+                setSelectedDate({ year: firstYear, month: firstMonth, day: firstDay, hour: firstHour });
+
                 setEpwMessage(`EPW file uploaded! ${data.total_records} records found.`);
             } else {
                 setEpwMessage(data.message || 'Failed to upload EPW file');
@@ -177,42 +242,54 @@ export default function Voaqwqtforce() {
                             {epwUploaded && (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        {[
-                                            { label: "Day", key: "day", options: Array.from({ length: 31 }, (_, i) => i + 1) },
-                                            { label: "Month", key: "month", options: Array.from({ length: 12 }, (_, i) => i + 1) },
-                                        ].map(({ label, key, options }) => (
-                                            <div key={key} className="space-y-1">
-                                                <Label className="text-xs" style={{ color: labelColor }}>{label}</Label>
-                                                <select
-                                                    className="w-full rounded-lg text-sm px-3 py-2 outline-none"
-                                                    style={{ background: selectBg, border: cardBorder, color: titleColor }}
-                                                    value={selectedDate[key as keyof typeof selectedDate]}
-                                                    onChange={(e) => setSelectedDate(prev => ({ ...prev, [key]: Number(e.target.value) }))}
-                                                >
-                                                    {options.map(v => <option key={v} value={v}>{v}</option>)}
-                                                </select>
-                                            </div>
-                                        ))}
+                                        {/* Year */}
                                         <div className="space-y-1">
                                             <Label className="text-xs" style={{ color: labelColor }}>Year</Label>
                                             <select
                                                 className="w-full rounded-lg text-sm px-3 py-2 outline-none"
                                                 style={{ background: selectBg, border: cardBorder, color: titleColor }}
                                                 value={selectedDate.year}
-                                                onChange={(e) => setSelectedDate(prev => ({ ...prev, year: Number(e.target.value) }))}
+                                                onChange={(e) => handleYearChange(Number(e.target.value))}
                                             >
                                                 {epwYears.map(year => <option key={year} value={year}>{year}</option>)}
                                             </select>
                                         </div>
+                                        {/* Month — full names, only available months */}
                                         <div className="space-y-1">
-                                            <Label className="text-xs" style={{ color: labelColor }}>Hour</Label>
+                                            <Label className="text-xs" style={{ color: labelColor }}>Month</Label>
+                                            <select
+                                                className="w-full rounded-lg text-sm px-3 py-2 outline-none"
+                                                style={{ background: selectBg, border: cardBorder, color: titleColor }}
+                                                value={selectedDate.month}
+                                                onChange={(e) => handleMonthChange(Number(e.target.value))}
+                                            >
+                                                {availableMonths.map(m => (
+                                                    <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        {/* Day — only days that exist in selected year+month */}
+                                        <div className="space-y-1">
+                                            <Label className="text-xs" style={{ color: labelColor }}>Day</Label>
+                                            <select
+                                                className="w-full rounded-lg text-sm px-3 py-2 outline-none"
+                                                style={{ background: selectBg, border: cardBorder, color: titleColor }}
+                                                value={selectedDate.day}
+                                                onChange={(e) => handleDayChange(Number(e.target.value))}
+                                            >
+                                                {availableDays.map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        </div>
+                                        {/* Hour — only hours that exist for selected year+month+day */}
+                                        <div className="space-y-1">
+                                            <Label className="text-xs" style={{ color: labelColor }}>Time</Label>
                                             <select
                                                 className="w-full rounded-lg text-sm px-3 py-2 outline-none"
                                                 style={{ background: selectBg, border: cardBorder, color: titleColor }}
                                                 value={selectedDate.hour}
                                                 onChange={(e) => setSelectedDate(prev => ({ ...prev, hour: Number(e.target.value) }))}
                                             >
-                                                {Array.from({ length: 24 }, (_, i) => i + 1).map(hv => <option key={hv} value={hv}>{formatHour(hv)}</option>)}
+                                                {availableHours.map(hv => <option key={hv} value={hv}>{formatHour(hv)}</option>)}
                                             </select>
                                         </div>
                                     </div>
