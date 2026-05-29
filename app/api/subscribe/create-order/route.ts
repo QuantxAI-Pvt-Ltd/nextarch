@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
 const PLANS = {
-  monthly:   { planId: "plan_Sey3obBDEfekzi", label: "Monthly Plan (₹500/mo)", totalCount: 12 },
-  quarterly: { planId: "plan_Sey48FsvwOMRgX", label: "Quarterly Plan (₹1,000/3mo)", totalCount: 4 },
+  monthly:   { planId: "plan_SvGnbshdhr88rI", label: "Monthly Plan (₹250/mo)",    totalCount: 12 },
+  quarterly: { planId: "plan_SvGmu2taomen9S", label: "Quarterly Plan (₹500/3mo)", totalCount: 4  },
 } as const;
 
 type PlanKey = keyof typeof PLANS;

@@ -88,12 +88,12 @@ export function PaywallPopup({ trialDaysLeft, plan, onDismiss }: PaywallPopupPro
         <div className="pw-plans">
           <div className="pw-plan">
             <div className="pw-plan-label">MONTHLY</div>
-            <div className="pw-plan-price">₹500<span>/mo</span></div>
+            <div className="pw-plan-price">₹250<span>/mo</span></div>
           </div>
           <div className="pw-plan pw-plan--featured">
             <div className="pw-plan-best">BEST VALUE</div>
             <div className="pw-plan-label">QUARTERLY</div>
-            <div className="pw-plan-price">₹1,000<span>/3mo</span></div>
+            <div className="pw-plan-price">₹500<span>/3mo</span></div>
             <div className="pw-plan-save">Save 33%</div>
           </div>
         </div>

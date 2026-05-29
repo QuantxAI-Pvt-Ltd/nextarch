@@ -9,7 +9,7 @@ const PLANS = [
   {
     id: "monthly" as const,
     name: "MONTHLY",
-    price: "₹500",
+    price: "₹250",
     period: "/month",
     subtext: null,
     badge: null,
@@ -27,9 +27,9 @@ const PLANS = [
   {
     id: "quarterly" as const,
     name: "QUARTERLY",
-    price: "₹1,000",
+    price: "₹500",
     period: "/3 months",
-    subtext: "₹333/month — save 33%",
+    subtext: "₹167/month — save 33%",
     badge: "BEST VALUE",
     features: [
       "Full calculator access",
@@ -37,7 +37,7 @@ const PLANS = [
       "Real-time computation",
       "Export results",
       "Priority support",
-      "Save ₹500 vs monthly",
+      "Save ₹250 vs monthly",
     ],
     cta: "Start Free Trial",
     accent: "#7c3aed",
