@@ -73,9 +73,7 @@ export function Sidebar() {
 
                 {/* Logo / Header Area */}
                 <div className={cn("py-8 flex items-center transition-all duration-300", isCollapsed ? "justify-center" : "px-6")}>
-                    <div className="w-8 h-8 bg-[#1A73E8] rounded-lg flex items-center justify-center text-white font-bold shrink-0">
-                        N
-                    </div>
+
                     {!isCollapsed && (
                         <span className="ml-3 font-bold text-lg tracking-tight" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>
                             Ventwise
