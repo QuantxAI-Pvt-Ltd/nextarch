@@ -21,7 +21,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     "pl-0"
                 )}
             >
-                <div className="container mx-auto p-4 md:p-8 max-w-[1600px] pb-16 md:pb-8">
+                <div className="container mx-auto p-3 sm:p-4 md:p-8 max-w-[1600px] pb-20 md:pb-8">
                     {children}
                 </div>
             </main>

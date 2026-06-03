@@ -101,16 +101,16 @@ export function ResultCard({
     label: string;
 }) {
     return (
-        <div className="bg-[#1A73E8] rounded-3xl p-8 relative overflow-hidden h-64 flex flex-col justify-between text-white shadow-lg shadow-blue-900/20">
+        <div className="bg-[#1A73E8] rounded-3xl p-6 sm:p-8 relative overflow-hidden min-h-[160px] sm:h-64 flex flex-col justify-between text-white shadow-lg shadow-blue-900/20">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl" />
             <div className="relative z-10 w-full">
                 <div className="flex justify-between items-start opacity-80 mb-2">
                     <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
                 </div>
-                <div className="flex items-baseline gap-2">
-                    <span className="text-6xl font-bold tracking-tighter">{value}</span>
-                    <span className="text-2xl font-medium opacity-80">{unit}</span>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{value}</span>
+                    <span className="text-xl sm:text-2xl font-medium opacity-80">{unit}</span>
                 </div>
             </div>
         </div>

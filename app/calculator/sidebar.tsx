@@ -47,7 +47,7 @@ export function Sidebar() {
             <aside
                 className={cn(
                     "flex flex-col h-screen fixed left-0 top-0 z-50 transition-all duration-300 ease-in-out",
-                    isCollapsed ? "w-20" : "w-64",
+                    isCollapsed ? "md:w-20 w-72" : "w-72 md:w-64",
                     isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
                 )}
                 style={{
@@ -72,10 +72,9 @@ export function Sidebar() {
                 </button>
 
                 {/* Logo / Header Area */}
-                <div className={cn("py-8 flex items-center transition-all duration-300", isCollapsed ? "justify-center" : "px-6")}>
-
-                    {!isCollapsed && (
-                        <span className="ml-3 font-bold text-lg tracking-tight" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>
+                <div className={cn("py-8 flex items-center transition-all duration-300", isCollapsed && !isMobileOpen ? "justify-center" : "px-6")}>
+                    {(!isCollapsed || isMobileOpen) && (
+                        <span className="font-bold text-lg tracking-tight" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>
                             Ventwise
                         </span>
                     )}
@@ -84,7 +83,7 @@ export function Sidebar() {
                 {/* Scrollable Content Area */}
                 <div className="flex-1 overflow-y-auto py-2 px-4 scrollbar-hide">
                     <div className="mb-8">
-                        {!isCollapsed && (
+                        {(!isCollapsed || isMobileOpen) && (
                             <h2
                                 className="text-xs font-bold uppercase tracking-wider mb-4 px-2"
                                 style={{ color: isDark ? "#6b7280" : "#94a3b8" }}
@@ -102,7 +101,7 @@ export function Sidebar() {
                                         title={isCollapsed ? item.label : ""}
                                         className={cn(
                                             "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all group",
-                                            isCollapsed && "justify-center"
+                                            isCollapsed && !isMobileOpen && "justify-center"
                                         )}
                                         style={{
                                             background: isActive
@@ -115,8 +114,8 @@ export function Sidebar() {
                                         onClick={() => window.innerWidth < 768 && setIsMobileOpen(false)}
                                     >
                                         <item.icon className={cn("w-5 h-5 shrink-0 transition-transform group-hover:scale-110", isActive && "scale-110")} />
-                                        {!isCollapsed && <span className="truncate">{item.label}</span>}
-                                        {isActive && !isCollapsed && (
+                                        {(!isCollapsed || isMobileOpen) && <span className="truncate">{item.label}</span>}
+                                        {isActive && (!isCollapsed || isMobileOpen) && (
                                             <div className="ml-auto bg-white/20 rounded-full p-0.5 min-w-4 min-h-4 flex items-center justify-center">
                                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                                                     <polyline points="20 6 9 17 4 12"></polyline>
@@ -129,8 +128,8 @@ export function Sidebar() {
                         </nav>
                     </div>
 
-                    {/* Engine Status - Hidden when collapsed */}
-                    {!isCollapsed && (
+                    {/* Engine Status - Hidden when collapsed on desktop; shown when mobile drawer open */}
+                    {(!isCollapsed || isMobileOpen) && (
                         <div
                             className="mt-8 mx-2 p-4 rounded-xl border transition-opacity duration-300"
                             style={{
