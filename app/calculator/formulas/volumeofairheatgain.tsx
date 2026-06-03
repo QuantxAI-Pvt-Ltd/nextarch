@@ -156,16 +156,20 @@ export default function Volumeofairheatgain() {
                         <div className="text-xl flex justify-center py-8 mb-8 w-full overflow-x-auto" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>
                             <BlockMath
                                 math={`\\begin{align*}
-                                    Q_s &= \\frac{2.9768 \\times K_s}{t} \\\\
-                                    Q_s &= \\frac{2.9768 \\times ${ks || 0}}{${t || 0}} \\\\
-                                    Q_s &= ${(!ks || !t) ? '\\text{---}' : '\\mathbf{' + ((2.9768 * ks) / t).toFixed(2) + '}'} \\; \\text{W} \\\\[1em]
-                                    
+                                    Q_1 &= \\frac{2{,}976.8 \\times K_s}{t} \\quad \\cdots (1) \\\\
+                                    Q_1 &= \\frac{2{,}976.8 \\times ${ks || 0}}{${t || 0}} \\\\
+                                    Q_1 &= ${(!ks || !t) ? '\\text{---}' : '\\mathbf{' + ((2.9768 * ks) / t).toFixed(2) + '}'} \\; \\text{m}^3/\\text{h} \\\\[1em]
+
+                                    Q_2 &= \\frac{4{,}127.26 \\times K_l}{h} \\quad \\cdots (2) \\\\
+                                    Q_2 &= \\frac{4{,}127.26 \\times ${kl || 0}}{${h || 0}} \\\\
+                                    Q_2 &= ${(!kl || !h) ? '\\text{---}' : '\\mathbf{' + ((4127.26 * kl) / h).toFixed(2) + '}'} \\; \\text{m}^3/\\text{h} \\\\[1em]
+
                                     Q_l &= \\frac{K_l}{814 \\times (w_o - w_i)} \\\\
                                     Q_l &= \\frac{${kl || 0}}{814 \\times (${wo || 0} - ${wi || 0})} \\\\
-                                    Q_l &= ${(!kl || (wo - wi) === 0) ? '\\text{---}' : '\\mathbf{' + (kl / (814 * (wo - wi))).toFixed(2) + '}'} \\; \\text{W} \\\\[1em]
-                                    
-                                    Q_t &= \\max(Q_s, Q_l) \\\\
-                                    Q_t &= ${(!ks || !t) && (!kl || (wo - wi) === 0) ? '\\text{---}' : '\\mathbf{' + Math.max(t ? (2.9768 * ks) / t : 0, (wo - wi) ? kl / (814 * (wo - wi)) : 0).toFixed(2) + '}'} \\; \\text{W}
+                                    Q_l &= ${(!kl || (wo - wi) === 0) ? '\\text{---}' : '\\mathbf{' + (kl / (814 * (wo - wi))).toFixed(2) + '}'} \\; \\text{m}^3/\\text{h} \\\\[1em]
+
+                                    Q_T &= Q_1 + Q_2 \\\\
+                                    Q_T &= ${(() => { const q1 = (!ks || !t) ? null : (2.9768 * ks) / t; const q2 = (!kl || !h) ? null : (4127.26 * kl) / h; return (q1 === null || q2 === null) ? '\\text{---}' : '\\mathbf{' + (q1 + q2).toFixed(2) + '}'; })()} \\; \\text{m}^3/\\text{h}
                                 \\end{align*}`}
                             />
                         </div>
@@ -175,8 +179,8 @@ export default function Volumeofairheatgain() {
                 {/* Right Column - Results */}
                 <div className="lg:col-span-4 space-y-6">
                     <ResultCard
-                        label="Total Air Volume (Qt)"
-                        value={result ? Math.max(result.Qt_vapor, result.Qt_humidity).toFixed(0) : "---"}
+                        label="Total Air Volume (QT)"
+                        value={result ? result.Qt_vapor.toFixed(0) : "---"}
                         unit="m³/h"
                     />
 
@@ -192,17 +196,17 @@ export default function Volumeofairheatgain() {
                             <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: isDark ? "#9ca3af" : "#64748b" }}>Detailed Breakdown</h4>
                             <div className="space-y-4">
                                 <div>
-                                    <p className="text-xs" style={{ color: isDark ? "#6b7280" : "#94a3b8" }}>Sensible Air Volume (Qs)</p>
+                                    <p className="text-xs" style={{ color: isDark ? "#6b7280" : "#94a3b8" }}>Q₁ — Sensible Heat (Qs)</p>
                                     <p className="text-xl font-bold" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>{result.Qs.toFixed(1)} <span className="text-sm font-normal" style={{ color: isDark ? "#4b5563" : "#94a3b8" }}>m³/h</span></p>
                                 </div>
                                 <div className="w-full h-px" style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#e2e8f0" }}></div>
                                 <div>
-                                    <p className="text-xs" style={{ color: isDark ? "#6b7280" : "#94a3b8" }}>Latent (Vapor Method)</p>
+                                    <p className="text-xs" style={{ color: isDark ? "#6b7280" : "#94a3b8" }}>Q₂ — Latent: Vapour Pressure Method</p>
                                     <p className="text-xl font-bold" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>{result.Ql_vapor.toFixed(1)} <span className="text-sm font-normal" style={{ color: isDark ? "#4b5563" : "#94a3b8" }}>m³/h</span></p>
                                 </div>
                                 <div className="w-full h-px" style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#e2e8f0" }}></div>
                                 <div>
-                                    <p className="text-xs" style={{ color: isDark ? "#6b7280" : "#94a3b8" }}>Latent (Humidity Method)</p>
+                                    <p className="text-xs" style={{ color: isDark ? "#6b7280" : "#94a3b8" }}>Ql — Latent: Specific Humidity Method</p>
                                     <p className="text-xl font-bold" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>{result.Q_humidity.toFixed(1)} <span className="text-sm font-normal" style={{ color: isDark ? "#4b5563" : "#94a3b8" }}>m³/h</span></p>
                                 </div>
                             </div>
