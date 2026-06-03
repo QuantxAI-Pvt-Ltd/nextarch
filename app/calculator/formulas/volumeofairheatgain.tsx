@@ -156,15 +156,15 @@ export default function Volumeofairheatgain() {
                         <div className="text-xl flex justify-center py-8 mb-8 w-full overflow-x-auto" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>
                             <BlockMath
                                 math={`\\begin{align*}
-                                    Q_1 &= \\frac{2{,}976.8 \\times K_s}{t} \\quad \\cdots (1) \\\\
+                                    
                                     Q_1 &= \\frac{2{,}976.8 \\times ${ks || 0}}{${t || 0}} \\\\
                                     Q_1 &= ${(!ks || !t) ? '\\text{---}' : '\\mathbf{' + ((2.9768 * ks) / t).toFixed(2) + '}'} \\; \\text{m}^3/\\text{h} \\\\[1em]
 
-                                    Q_2 &= \\frac{4{,}127.26 \\times K_l}{h} \\quad \\cdots (2) \\\\
+                                    
                                     Q_2 &= \\frac{4{,}127.26 \\times ${kl || 0}}{${h || 0}} \\\\
                                     Q_2 &= ${(!kl || !h) ? '\\text{---}' : '\\mathbf{' + ((4127.26 * kl) / h).toFixed(2) + '}'} \\; \\text{m}^3/\\text{h} \\\\[1em]
 
-                                    Q_l &= \\frac{K_l}{814 \\times (w_o - w_i)} \\\\
+                                    
                                     Q_l &= \\frac{${kl || 0}}{814 \\times (${wo || 0} - ${wi || 0})} \\\\
                                     Q_l &= ${(!kl || (wo - wi) === 0) ? '\\text{---}' : '\\mathbf{' + (kl / (814 * (wo - wi))).toFixed(2) + '}'} \\; \\text{m}^3/\\text{h} \\\\[1em]
 
