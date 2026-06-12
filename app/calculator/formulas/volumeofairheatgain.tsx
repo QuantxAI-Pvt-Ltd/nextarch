@@ -64,7 +64,7 @@ export default function Volumeofairheatgain() {
             setResult(data);
         } catch (error) {
             console.error('Error calculating:', error);
-            alert('Error calculating. Please ensure the API is running on http://localhost:8000');
+            alert('Error calculating...');
         } finally {
             setLoading(false);
         }
