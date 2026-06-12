@@ -8,6 +8,10 @@ import Link from "next/link";
 export default function RegisterPage() {
   const [state, formAction] = useActionState(registeraction, null);
   const [isDark, setIsDark] = useState(false);
+  const [termsChecked, setTermsChecked]     = useState(false);
+  const [privacyChecked, setPrivacyChecked] = useState(false);
+
+  const canSubmit = termsChecked && privacyChecked;
 
   return (
     <div className={`login-root${isDark ? " dark" : ""}`}>
@@ -150,8 +154,74 @@ export default function RegisterPage() {
               <div className="login-error">{state.error}</div>
             )}
 
+            {/* ── Legal Acceptance Checkboxes ───────────────────────── */}
+            <div className="reg-legal-section">
+              <p className="reg-legal-heading">LEGAL AGREEMENTS</p>
+
+              {/* Terms of Conditions */}
+              <label
+                className={`reg-legal-label${termsChecked ? " checked" : ""}`}
+                htmlFor="reg_terms_cb"
+              >
+                <div className="reg-cb-wrap">
+                  <input
+                    type="checkbox"
+                    id="reg_terms_cb"
+                    name="terms_accepted"
+                    checked={termsChecked}
+                    onChange={(e) => setTermsChecked(e.target.checked)}
+                    className="reg-cb-input"
+                  />
+                  <div className="reg-custom-cb">
+                    {termsChecked && (
+                      <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="reg-cb-text">
+                  I have read and agree to the{" "}
+                  <Link href="/terms" target="_blank" className="reg-legal-link">Terms of Conditions</Link>
+                </span>
+              </label>
+
+              {/* Privacy Policy */}
+              <label
+                className={`reg-legal-label${privacyChecked ? " checked" : ""}`}
+                htmlFor="reg_privacy_cb"
+              >
+                <div className="reg-cb-wrap">
+                  <input
+                    type="checkbox"
+                    id="reg_privacy_cb"
+                    name="privacy_accepted"
+                    checked={privacyChecked}
+                    onChange={(e) => setPrivacyChecked(e.target.checked)}
+                    className="reg-cb-input"
+                  />
+                  <div className="reg-custom-cb">
+                    {privacyChecked && (
+                      <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="reg-cb-text">
+                  I have read and agree to the{" "}
+                  <Link href="/privacy-policy" target="_blank" className="reg-legal-link">Privacy Policy</Link>
+                </span>
+              </label>
+            </div>
+
             {/* Submit */}
-            <button type="submit" className="login-submit-btn" style={{ marginBottom: 12 }}>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className={`login-submit-btn${canSubmit ? "" : " disabled"}`}
+              style={{ marginBottom: 12 }}
+            >
               CREATE ACCOUNT
             </button>
 
@@ -292,6 +362,60 @@ export default function RegisterPage() {
         }
         .reg-back-link:hover { text-decoration: underline; }
 
+        /* ═════ LEGAL CHECKBOXES ═════ */
+        .reg-legal-section {
+          margin-bottom: 16px;
+          display: flex; flex-direction: column; gap: 8px;
+        }
+        .reg-legal-heading {
+          font-size: 10px; color: #94a3b8;
+          letter-spacing: 0.25em; margin: 0 0 4px;
+          transition: color 0.3s;
+        }
+        .reg-legal-label {
+          display: flex; align-items: flex-start; gap: 11px;
+          padding: 11px 14px;
+          background: #f8fafc; border: 1px solid #e2e8f0;
+          border-radius: 9px; cursor: pointer;
+          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+          user-select: none;
+        }
+        .reg-legal-label:hover { border-color: #93c5fd; background: #eff6ff; }
+        .reg-legal-label.checked {
+          border-color: #3b82f6; background: #eff6ff;
+          box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
+        }
+        .reg-cb-wrap { flex-shrink: 0; margin-top: 1px; }
+        .reg-cb-input {
+          position: absolute; opacity: 0; width: 0; height: 0;
+        }
+        .reg-custom-cb {
+          width: 18px; height: 18px;
+          border: 2px solid #cbd5e1; border-radius: 4px;
+          background: #fff; display: flex;
+          align-items: center; justify-content: center;
+          transition: border-color 0.2s, background 0.2s;
+          flex-shrink: 0;
+        }
+        .reg-legal-label.checked .reg-custom-cb {
+          background: #2563eb; border-color: #2563eb;
+        }
+        .reg-cb-text {
+          font-size: 11px; color: #475569;
+          letter-spacing: 0.04em; line-height: 1.6;
+          transition: color 0.3s;
+        }
+        .reg-legal-link {
+          color: #2563eb; font-weight: 700; text-decoration: none;
+          transition: color 0.2s;
+        }
+        .reg-legal-link:hover { text-decoration: underline; }
+        .login-submit-btn.disabled {
+          background: #cbd5e1 !important; color: #94a3b8 !important;
+          cursor: not-allowed; opacity: 0.75;
+          transform: none !important;
+        }
+
         /* ═════ DARK THEME ═════ */
         .login-root.dark { background: #0f172a; }
         .login-root.dark .login-grid {
@@ -330,13 +454,22 @@ export default function RegisterPage() {
         .login-root.dark .login-input { color: #e2e8f0; }
         .login-root.dark .login-input::placeholder { color: #475569; }
         .login-root.dark .login-submit-btn { background: #0284c7; }
-        .login-root.dark .login-submit-btn:hover { background: #0369a1; }
+        .login-root.dark .login-submit-btn:hover:not(.disabled) { background: #0369a1; }
         .login-root.dark .login-error {
           color: #f87171; background: rgba(239,68,68,0.12);
           border-color: rgba(239,68,68,0.35);
         }
         .login-root.dark .reg-back-text { color: #475569; }
         .login-root.dark .reg-back-link { color: #818cf8; }
+        .login-root.dark .reg-legal-heading { color: #475569; }
+        .login-root.dark .reg-legal-label { background: #0f172a; border-color: #334155; }
+        .login-root.dark .reg-legal-label:hover { border-color: #0284c7; background: #0f1f35; }
+        .login-root.dark .reg-legal-label.checked { border-color: #0284c7; background: #0f1f35; box-shadow: 0 0 0 2px rgba(0,180,216,0.1); }
+        .login-root.dark .reg-custom-cb { border-color: #475569; background: #1e293b; }
+        .login-root.dark .reg-legal-label.checked .reg-custom-cb { background: #0284c7; border-color: #0284c7; }
+        .login-root.dark .reg-cb-text { color: #94a3b8; }
+        .login-root.dark .reg-legal-link { color: #38bdf8; }
+        .login-root.dark .login-submit-btn.disabled { background: #334155 !important; color: #475569 !important; }
       `}</style>
     </div>
   );
