@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PieChart, Check, Zap, Shield, Star, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useGlobalTheme } from "@/components/global-theme-context";
 
 const PLANS = [
   {
@@ -59,7 +60,7 @@ function loadRazorpayScript(): Promise<void> {
 
 export default function SubscribePage() {
   const router = useRouter();
-  const [isDark, setIsDark] = useState(true);
+  const { isDark, toggleTheme } = useGlobalTheme();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -168,7 +169,7 @@ export default function SubscribePage() {
 
         <button
           className="sub-theme-btn"
-          onClick={() => setIsDark(!isDark)}
+          onClick={toggleTheme}
           aria-label="Toggle theme"
         >
           {isDark ? (
@@ -298,7 +299,6 @@ export default function SubscribePage() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding-bottom: 60px;
           transition: background 0.3s;
         }
         .sub-root.dark { background: #080d18; }

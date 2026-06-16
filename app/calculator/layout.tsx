@@ -27,29 +27,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             </main>
 
             {/* Footer / Status Bar - Hidden on mobile or pushed */}
-            <div
-                className={cn(
-                    "fixed bottom-0 right-0 h-8 border-t border-white/5 md:flex hidden items-center justify-between px-6 z-20 text-[10px] uppercase tracking-wider font-mono transition-all duration-300",
-                    isCollapsed ? "left-20" : "left-64"
-                )}
-                style={{
-                    background: "inherit",
-                    borderColor: "rgba(255,255,255,0.05)",
-                }}
-            >
-                <div className="flex items-center gap-4" style={{ color: "#6b7280" }}>
-                    <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#1A73E8]"></span>
-                        CPU ENGINE: ACTIVE
-                    </div>
-                    <span>Lat: 12ms</span>
-                </div>
-                <div className="flex items-center gap-4" style={{ color: "#6b7280" }}>
-                    <span>V1.4.2-STABLE</span>
-                    <span>SUPPORT</span>
-                    <span>DOCS</span>
-                </div>
-            </div>
+
         </ThemedShell>
     );
 }

@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google"
 import Footer from "@/components/Footer";
+import { GlobalThemeProvider } from "@/components/global-theme-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,8 +32,10 @@ export default function RootLayout({
       <html lang="en">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-          {children}
-          <Footer />
+          <GlobalThemeProvider>
+            {children}
+            <Footer />
+          </GlobalThemeProvider>
           <Analytics />
           <SpeedInsights />
         </body>

@@ -1,15 +1,15 @@
 "use client"
 import { loginaction } from "../actions/login";
 import { useActionState } from "react";
-import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 import { PieChart } from "lucide-react";
+import { useGlobalTheme } from "@/components/global-theme-context";
 
 function LoginInner() {
   const [state, formAction] = useActionState(loginaction, null);
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useGlobalTheme();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered") === "1";
 
@@ -23,7 +23,7 @@ function LoginInner() {
       {/* Theme toggle button — top right, below corner text */}
       <button
         className="login-theme-toggle"
-        onClick={() => setIsDark(!isDark)}
+        onClick={toggleTheme}
         title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
         aria-label="Toggle theme"
       >
@@ -208,7 +208,7 @@ function LoginInner() {
         /* ─── Theme Toggle Button ─── */
         .login-theme-toggle {
           position: fixed;
-          top: 64px;
+          top: 20px;
           right: 18px;
           z-index: 20;
           display: flex;

@@ -1,10 +1,10 @@
 "use client"
-import { useState } from "react";
 import { PieChart, ArrowLeft, FileText } from "lucide-react";
 import Link from "next/link";
+import { useGlobalTheme } from "@/components/global-theme-context";
 
 export default function TermsPage() {
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useGlobalTheme();
 
   return (
     <div className={`legal-root${isDark ? " dark" : ""}`}>
@@ -13,7 +13,7 @@ export default function TermsPage() {
       {/* Theme toggle */}
       <button
         className="legal-theme-toggle"
-        onClick={() => setIsDark(!isDark)}
+        onClick={toggleTheme}
         title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
         aria-label="Toggle theme"
       >
@@ -488,7 +488,6 @@ export default function TermsPage() {
           position: relative;
           font-family: 'Share Tech Mono', monospace;
           transition: background 0.3s;
-          padding-bottom: 60px;
         }
         .legal-grid {
           position: fixed; inset: 0;

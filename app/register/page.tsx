@@ -1,13 +1,13 @@
 "use client"
 import { registeraction } from "../actions/register";
-import { useActionState } from "react";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { PieChart } from "lucide-react";
 import Link from "next/link";
+import { useGlobalTheme } from "@/components/global-theme-context";
 
 export default function RegisterPage() {
   const [state, formAction] = useActionState(registeraction, null);
-  const [isDark, setIsDark] = useState(false);
+  const { isDark, toggleTheme } = useGlobalTheme();
   const [termsChecked, setTermsChecked] = useState(false);
   const [privacyChecked, setPrivacyChecked] = useState(false);
 
@@ -21,7 +21,7 @@ export default function RegisterPage() {
       {/* Theme toggle */}
       <button
         className="login-theme-toggle"
-        onClick={() => setIsDark(!isDark)}
+        onClick={toggleTheme}
         title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
         aria-label="Toggle theme"
       >
@@ -262,7 +262,7 @@ export default function RegisterPage() {
           pointer-events: none; z-index: 0;
         }
         .login-theme-toggle {
-          position: fixed; top: 64px; right: 18px; z-index: 20;
+          position: fixed; top: 20px; right: 18px; z-index: 20;
           display: flex; align-items: center; gap: 7px;
           background: #ffffff; border: 1px solid #cbd5e1;
           border-radius: 20px; padding: 6px 14px 6px 10px;
