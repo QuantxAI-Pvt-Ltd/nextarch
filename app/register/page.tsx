@@ -8,7 +8,7 @@ import Link from "next/link";
 export default function RegisterPage() {
   const [state, formAction] = useActionState(registeraction, null);
   const [isDark, setIsDark] = useState(false);
-  const [termsChecked, setTermsChecked]     = useState(false);
+  const [termsChecked, setTermsChecked] = useState(false);
   const [privacyChecked, setPrivacyChecked] = useState(false);
 
   const canSubmit = termsChecked && privacyChecked;
@@ -87,7 +87,7 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div className="login-field-group">
-              <label className="login-label">OPERATOR IDENTITY</label>
+              <label className="login-label">Email</label>
               <div className="login-input-wrapper">
                 <span className="login-input-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -108,7 +108,7 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div className="login-field-group">
-              <label className="login-label">ACCESS KEY</label>
+              <label className="login-label">Password</label>
               <div className="login-input-wrapper">
                 <span className="login-input-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -130,7 +130,7 @@ export default function RegisterPage() {
 
             {/* Confirm Password */}
             <div className="login-field-group">
-              <label className="login-label">CONFIRM ACCESS KEY</label>
+              <label className="login-label">Confirm Password</label>
               <div className="login-input-wrapper">
                 <span className="login-input-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

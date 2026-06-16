@@ -5,7 +5,7 @@ import clientPromise from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 
 // ── Bump these versions to force re-acceptance on next login ───────────────
-const CURRENT_TERMS_VERSION   = "1.0";
+const CURRENT_TERMS_VERSION = "1.0";
 const CURRENT_PRIVACY_VERSION = "1.0";
 
 export async function loginaction(_prev: unknown, formdata: FormData) {
@@ -22,12 +22,12 @@ export async function loginaction(_prev: unknown, formdata: FormData) {
 
   const user = await users.findOne({ email });
   if (!user) {
-    return { error: "Invalid operator ID or access key." };
+    return { error: "Invalid operator ID or password." };
   }
 
   const isValid = await bcrypt.compare(password, user.password as string);
   if (!isValid) {
-    return { error: "Invalid operator ID or access key." };
+    return { error: "Invalid operator ID or password." };
   }
 
   // ── Set auth cookie ────────────────────────────────────────────────────

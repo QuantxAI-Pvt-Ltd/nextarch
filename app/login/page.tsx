@@ -69,7 +69,7 @@ function LoginInner() {
           <form action={formAction}>
             {/* Operator Identity */}
             <div className="login-field-group">
-              <label className="login-label">OPERATOR IDENTITY</label>
+              <label className="login-label">Email</label>
               <div className="login-input-wrapper">
                 <span className="login-input-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -89,7 +89,7 @@ function LoginInner() {
 
             {/* Access Key */}
             <div className="login-field-group">
-              <label className="login-label">ACCESS KEY</label>
+              <label className="login-label">Password</label>
               <div className="login-input-wrapper">
                 <span className="login-input-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

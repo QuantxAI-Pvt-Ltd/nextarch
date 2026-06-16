@@ -183,12 +183,7 @@ export function Header() {
                                     {isDark && <Check className="w-4 h-4" />}
                                 </button>
                             </div>
-                            <div className="mx-3 border-t" style={{ borderColor: isDark ? "#334155" : "#e2e8f0" }} />
-                            <div className="px-4 py-2.5">
-                                <p className="text-[10px] font-mono" style={{ color: isDark ? "#475569" : "#94a3b8" }}>
-                                    Ventwise v1.4.2-stable
-                                </p>
-                            </div>
+
                         </div>
                     )}
                 </div>

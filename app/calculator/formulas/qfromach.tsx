@@ -95,6 +95,10 @@ export default function Qfromach() {
 
                     {/* Live Formula Preview */}
                     <div className="rounded-2xl p-6 relative" style={{ background: previewBg, border: previewBorder }}>
+                        <div className="flex justify-between items-center mb-8">
+                            <h3 className="text-[#1A73E8] text-xs font-bold uppercase tracking-wider">LIVE FORMULA PREVIEW</h3>
+                            <ArrowLeft className="h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#cbd5e1" }} />
+                        </div>
                         <div className="text-xl flex justify-center py-8 mb-8" style={{ color: titleColor }}>
                             <BlockMath math={`\\begin{align*}
                                 Q &= \\frac{ACH \\times V \\times \\rho \\times C_p \\times \\Delta T}{3600} \\\\[6pt]

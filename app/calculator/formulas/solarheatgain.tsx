@@ -96,11 +96,12 @@ export default function SolarHeatGain() {
                                 onClick={handleAddElement}
                                 variant="outline"
                                 size="sm"
-                                className="border-[#1A73E8] text-[#1A73E8] hover:bg-[#1A73E8]/10"
+                                className="bg-[#1A73E8]/10  text-[#1A73E8] border border-[#1A73E8]/20"
                             >
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Window Type
                             </Button>
+
                         </div>
 
                         {elements.map((element, index) => (
@@ -222,17 +223,17 @@ export default function SolarHeatGain() {
                         <div className="text-xl flex justify-center py-8 mb-8 w-full overflow-x-auto" style={{ color: titleColor }}>
                             <BlockMath math={`\\begin{align*}
                                 ${elements.map((e, index) => {
-                                    const val = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0);
-                                    return `${index + 1}\\text{)} \\quad Q_{${index + 1}} &= ${e.area || 0} \\times ${e.shgc || 0} \\times ${e.pf || 0} \\times ${e.radiation || 0} = ${val === 0 ? '\\text{---}' : val.toFixed(3)} \\; \\text{W} \\\\[6pt]`;
-                                }).join('')}
+                                const val = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0);
+                                return `${index + 1}\\text{)} \\quad Q_{${index + 1}} &= ${e.area || 0} \\times ${e.shgc || 0} \\times ${e.pf || 0} \\times ${e.radiation || 0} = ${val === 0 ? '\\text{---}' : val.toFixed(3)} \\; \\text{W} \\\\[6pt]`;
+                            }).join('')}
                                 Q_{\\text{total}} &= ${elements.map((e, i) => {
-                                    const val = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0);
-                                    return `(${val === 0 ? '\\text{---}' : val.toFixed(3)} \\times ${e.qa || 0})`;
-                                }).join(' + ')} \\\\
+                                const val = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0);
+                                return `(${val === 0 ? '\\text{---}' : val.toFixed(3)} \\times ${e.qa || 0})`;
+                            }).join(' + ')} \\\\
                                 Q_{\\text{total}} &= ${elements.map((e, i) => {
-                                    const totalVal = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0) * (e.qa || 0);
-                                    return totalVal === 0 ? '\\text{---}' : totalVal.toFixed(3);
-                                }).join(' + ')} \\\\
+                                const totalVal = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0) * (e.qa || 0);
+                                return totalVal === 0 ? '\\text{---}' : totalVal.toFixed(3);
+                            }).join(' + ')} \\\\
                                 Q_{\\text{total}} &= ${elements.reduce((acc, el) => acc + ((el.area || 0) * (el.shgc || 0) * (el.pf || 0) * (el.radiation || 0) * (el.qa || 0)), 0) === 0 ? '\\text{---}' : '\\mathbf{' + elements.reduce((acc, el) => acc + ((el.area || 0) * (el.shgc || 0) * (el.pf || 0) * (el.radiation || 0) * (el.qa || 0)), 0).toFixed(3) + '}'} \\; \\text{W}
                             \\end{align*}`} />
                         </div>
