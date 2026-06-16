@@ -127,29 +127,6 @@ export function Sidebar() {
                             })}
                         </nav>
                     </div>
-
-                    {/* Engine Status - Hidden when collapsed on desktop; shown when mobile drawer open */}
-                    {(!isCollapsed || isMobileOpen) && (
-                        <div
-                            className="mt-8 mx-2 p-4 rounded-xl border transition-opacity duration-300"
-                            style={{
-                                borderColor: "rgba(59,130,246,0.2)",
-                                background: "rgba(59,130,246,0.05)",
-                            }}
-                        >
-                            <h3 className="text-blue-400 font-semibold text-sm mb-2">Engine Status</h3>
-                            <p
-                                className="text-xs leading-relaxed mb-4"
-                                style={{ color: isDark ? "#9ca3af" : "#64748b" }}
-                            >
-                                Real-time calculations active.
-                            </p>
-                            <div className="flex items-center gap-2 text-[10px] font-mono text-green-400 uppercase tracking-wider">
-                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                Live View
-                            </div>
-                        </div>
-                    )}
                 </div>
             </aside>
         </>
