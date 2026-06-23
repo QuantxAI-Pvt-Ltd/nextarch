@@ -21,9 +21,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
 
+  // ── Guard: env vars must be set in Vercel dashboard ──────────
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.error("[create-order] Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET env vars");
+    return NextResponse.json(
+      { error: "Payment service not configured. Contact support." },
+      { status: 503 }
+    );
+  }
+
   const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
   });
 
   const { planId, label, totalCount } = PLANS[plan];
@@ -41,8 +50,13 @@ export async function POST(request: NextRequest) {
       label,
     });
   } catch (err: unknown) {
+    // Surface the actual Razorpay error (e.g. invalid plan ID, key mismatch)
     const message =
-      err instanceof Error ? err.message : "Razorpay error";
+      err instanceof Error
+        ? err.message
+        : typeof err === "object" && err !== null && "description" in err
+          ? String((err as Record<string, unknown>).description)
+          : JSON.stringify(err);
     console.error("[create-order]", err);
     return NextResponse.json({ error: message }, { status: 502 });
   }
