@@ -64,13 +64,15 @@ export default function SubscribePage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Auth guard: redirect to login if not authenticated ───────
+  // ── Auth guard: redirect to login only on definitive 401 ──────
+  // Do NOT redirect on network errors or 5xx — those are transient
+  // (e.g. cold-start DB delay on Vercel) and would kick logged-in users.
   useEffect(() => {
     fetch("/api/usage")
       .then((r) => {
-        if (!r.ok) router.replace("/login?from=/subscribe");
+        if (r.status === 401) router.replace("/login?from=/subscribe");
       })
-      .catch(() => router.replace("/login?from=/subscribe"));
+      .catch(() => null); // silent on network failure
   }, [router]);
 
   const handleSubscribe = useCallback(
@@ -94,8 +96,14 @@ export default function SubscribePage() {
             router.push("/login?from=/subscribe");
             return;
           }
-          const data = await orderRes.json();
-          throw new Error(data.error || "Could not create subscription");
+          // Safely parse error — body may be empty or HTML on a 500
+          const text = await orderRes.text();
+          let errMsg = "Could not create subscription";
+          try {
+            const data = JSON.parse(text);
+            if (data?.error) errMsg = data.error;
+          } catch { /* body was not JSON, keep default message */ }
+          throw new Error(errMsg);
         }
 
         const { subscriptionId, label } = await orderRes.json();

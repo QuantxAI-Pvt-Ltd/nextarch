@@ -28,15 +28,22 @@ export async function POST(request: NextRequest) {
 
   const { planId, label, totalCount } = PLANS[plan];
 
-  const subscription = await razorpay.subscriptions.create({
-    plan_id: planId,
-    total_count: totalCount,
-    quantity: 1,
-    notes: { plan, email },
-  });
+  try {
+    const subscription = await razorpay.subscriptions.create({
+      plan_id: planId,
+      total_count: totalCount,
+      quantity: 1,
+      notes: { plan, email },
+    });
 
-  return NextResponse.json({
-    subscriptionId: subscription.id,
-    label,
-  });
+    return NextResponse.json({
+      subscriptionId: subscription.id,
+      label,
+    });
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : "Razorpay error";
+    console.error("[create-order]", err);
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
 }
