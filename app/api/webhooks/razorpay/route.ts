@@ -4,14 +4,14 @@ import clientPromise from "@/lib/mongodb";
 
 // How many days to extend planExpiresAt on each renewal
 const PLAN_DAYS: Record<string, number> = {
-  plan_SvGnbshdhr88rI: 30, // monthly
-  plan_SvGmu2taomen9S: 90, // quarterly
+  plan_TDQj68UGe8Fxj5: 30, // monthly
+  plan_TDQkJhulcfdsjn: 90, // quarterly
 };
 
 // Map plan IDs to plan names
 const PLAN_NAMES: Record<string, string> = {
-  plan_SvGnbshdhr88rI: "monthly",
-  plan_SvGmu2taomen9S: "quarterly",
+  plan_TDQj68UGe8Fxj5: "monthly",
+  plan_TDQkJhulcfdsjn: "quarterly",
 };
 
 export async function POST(request: NextRequest) {
