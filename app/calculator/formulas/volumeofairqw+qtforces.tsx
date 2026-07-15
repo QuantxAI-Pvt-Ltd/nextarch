@@ -87,7 +87,8 @@ export default function Voaqwqtforce() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setValues(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+        const parsed = parseFloat(value);
+        setValues(prev => ({ ...prev, [name]: isNaN(parsed) ? 0 : Math.abs(parsed) }));
     };
 
     const { A_inlet, h, t_i, t_o, A_smaller, V, K } = values;

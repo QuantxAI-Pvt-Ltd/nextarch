@@ -42,7 +42,8 @@ export default function SolarHeatGain() {
 
     const handleElementChange = (index: number, field: keyof WindowElement, value: string) => {
         const newElements = [...elements];
-        newElements[index][field] = parseFloat(value) || 0;
+        const parsed = parseFloat(value);
+        newElements[index][field] = isNaN(parsed) ? 0 : Math.abs(parsed);
         setElements(newElements);
     };
 

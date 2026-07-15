@@ -15,6 +15,7 @@ interface MetricCardProps {
     min?: number;
     max?: number;
     step?: number;
+    // allowNegative intentionally removed — all fields use Math.abs() at the call-site
 }
 
 export function MetricCard({
@@ -67,9 +68,11 @@ export function MetricCard({
                         name={name}
                         value={value}
                         onChange={onChange}
-                        min={min}
+                        min={min ?? 0}
                         max={max}
                         step={step}
+                        onFocus={(e) => e.target.select()}
+                        onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                         className="text-3xl font-bold text-[#1A73E8] tracking-tight bg-transparent border-none focus:outline-none w-full"
                     />
                 ) : (

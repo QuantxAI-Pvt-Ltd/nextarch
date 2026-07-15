@@ -33,7 +33,8 @@ export default function Volumeofairheatgain() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setvalues(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+        const parsed = parseFloat(value);
+        setvalues(prev => ({ ...prev, [name]: isNaN(parsed) ? 0 : Math.abs(parsed) }));
     }
 
     const { ks, h, t, wo, kl, wi } = values;

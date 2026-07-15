@@ -31,7 +31,8 @@ export default function Byelement() {
 
     const handleElementChange = (index: number, field: 'U' | 'A', value: string) => {
         const newElements = [...elements];
-        newElements[index][field] = parseFloat(value) || 0;
+        const parsed = parseFloat(value);
+        newElements[index][field] = isNaN(parsed) ? 0 : Math.abs(parsed);
         setElements(newElements);
     };
 
@@ -94,7 +95,10 @@ export default function Byelement() {
                             value={deltaT}
                             unit="K"
                             name="deltaT"
-                            onChange={(e) => setDeltaT(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => {
+                                const parsed = parseFloat(e.target.value);
+                                setDeltaT(isNaN(parsed) ? 0 : Math.abs(parsed));
+                            }}
                         />
                     </div>
 
@@ -124,9 +128,12 @@ export default function Byelement() {
                                         <div className="flex-1 min-w-[140px]">
                                             <Label className="text-xs mb-1.5 block" style={{ color: labelColor }}>U-value (W/m²·K)</Label>
                                             <Input
-                                                type="number"
+                                            type="number"
                                                 value={element.U}
                                                 onChange={(e) => handleElementChange(index, 'U', e.target.value)}
+                                                min={0}
+                                                onFocus={(e) => e.target.select()}
+                                                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                                                 className="h-10"
                                                 style={{
                                                     background: cardBg,
@@ -144,6 +151,9 @@ export default function Byelement() {
                                                 type="number"
                                                 value={element.A}
                                                 onChange={(e) => handleElementChange(index, 'A', e.target.value)}
+                                                min={0}
+                                                onFocus={(e) => e.target.select()}
+                                                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                                                 className="h-10"
                                                 style={{
                                                     background: cardBg,

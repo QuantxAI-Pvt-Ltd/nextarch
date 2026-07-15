@@ -30,7 +30,8 @@ export default function Windowcalculations() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setValues(prev => ({ ...prev, [name]: Number(value) }));
+        const parsed = parseFloat(value);
+        setValues(prev => ({ ...prev, [name]: isNaN(parsed) ? 0 : Math.abs(parsed) }));
     };
 
     const { V_room, n_ach, K, V, A_effective } = values;
