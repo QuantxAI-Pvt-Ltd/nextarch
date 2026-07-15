@@ -82,7 +82,7 @@ export default function Volumeofairheatgain() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                 {/* Left Column - Inputs */}
                 <div className="lg:col-span-8 space-y-6">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -144,17 +144,17 @@ export default function Volumeofairheatgain() {
 
                     {/* Live Formula Preview */}
                     <div
-                        className="rounded-2xl p-6 relative"
+                        className="rounded-2xl p-4 md:p-6 relative w-full overflow-hidden"
                         style={{
                             background: isDark ? "#0f1623" : "#f8fafc",
                             border: isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0",
                         }}
                     >
-                        <div className="flex justify-between items-center mb-8">
+                        <div className="flex justify-between items-center mb-4 md:mb-8 pr-8 md:pr-0">
                             <h3 className="text-[#1A73E8] text-xs font-bold uppercase tracking-wider">LIVE FORMULA PREVIEW</h3>
-                            <ArrowLeft className="h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#cbd5e1" }} />
                         </div>
-                        <div className="text-base sm:text-lg flex justify-center py-4 sm:py-8 mb-4 sm:mb-8 w-full overflow-x-auto" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>
+                        <ArrowLeft className="absolute top-4 right-4 md:top-6 md:right-6 h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#cbd5e1" }} />
+                        <div className="text-xs sm:text-base md:text-lg flex justify-start md:justify-center py-3 md:py-8 mb-2 md:mb-8 w-full overflow-x-auto px-2 md:px-0" style={{ color: isDark ? "#ffffff" : "#1e293b" }}>
                             <BlockMath
                                 math={`\\begin{align*}
                                     

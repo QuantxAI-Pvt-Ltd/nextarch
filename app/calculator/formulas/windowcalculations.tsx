@@ -83,7 +83,7 @@ export default function Windowcalculations() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                 <div className="lg:col-span-8 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <MetricCard label="Room Volume (V)" value={V_room} unit="m³" name="V_room" onChange={handleChange} />
@@ -160,12 +160,12 @@ export default function Windowcalculations() {
                     </div>
 
                     {/* Live Formula Preview */}
-                    <div className="rounded-2xl p-6 relative" style={{ background: previewBg, border: previewBorder }}>
-                        <div className="flex justify-between items-center mb-8">
+                    <div className="rounded-2xl p-4 md:p-6 relative w-full overflow-hidden" style={{ background: previewBg, border: previewBorder }}>
+                        <div className="flex justify-between items-center mb-4 md:mb-8 pr-8 md:pr-0">
                             <h3 className="text-[#1A73E8] text-xs font-bold uppercase tracking-wider">LIVE FORMULA PREVIEW</h3>
-                            <ArrowLeft className="h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#cbd5e1" }} />
                         </div>
-                        <div className="text-xl flex justify-center py-8 mb-8 w-full overflow-x-auto" style={{ color: titleColor }}>
+                        <ArrowLeft className="absolute top-4 right-4 md:top-6 md:right-6 h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#cbd5e1" }} />
+                        <div className="text-xs sm:text-base md:text-xl flex justify-start md:justify-center py-3 md:py-8 mb-2 md:mb-8 w-full overflow-x-auto px-2 md:px-0" style={{ color: titleColor }}>
                             {equalOpenings ? (
                                 <BlockMath math={`\\begin{align*}
                                     Q &= V_{room} \\times n_{ach} \\\\
