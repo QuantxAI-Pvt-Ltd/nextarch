@@ -328,9 +328,12 @@ export function Header() {
 
                             {/* ── Actions ── */}
                             <div className="p-2">
-                                <Link
-                                    href="/api/signout"
-                                    onClick={() => setProfileOpen(false)}
+                                <button
+                                    onClick={async () => {
+                                        setProfileOpen(false);
+                                        await fetch("/api/signout", { method: "POST" });
+                                        window.location.href = "/description";
+                                    }}
                                     className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm transition-colors"
                                     style={{ color: isDark ? "#64748b" : "#94a3b8" }}
                                     onMouseEnter={e => (e.currentTarget.style.color = "#f87171")}
@@ -338,7 +341,7 @@ export function Header() {
                                 >
                                     <LogOut size={15} />
                                     Sign out
-                                </Link>
+                                </button>
                             </div>
                         </div>
                     )}
