@@ -328,21 +328,6 @@ export function Header() {
 
                             {/* ── Actions ── */}
                             <div className="p-2">
-                                {!usage?.planActive && (
-                                    <Link
-                                        href="/subscribe"
-                                        onClick={() => setProfileOpen(false)}
-                                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-90 mb-1"
-                                        style={{
-                                            background: "linear-gradient(135deg,#2563eb,#7c3aed)",
-                                            color: "#fff",
-                                        }}>
-                                        <CreditCard size={15} />
-                                        {usage?.trialActive ? "Upgrade Plan" : "Subscribe Now"}
-                                        <ChevronRight size={14} className="ml-auto" />
-                                    </Link>
-                                )}
-
                                 <Link
                                     href="/api/signout"
                                     onClick={() => setProfileOpen(false)}
