@@ -31,7 +31,8 @@ export default function Byelement() {
 
     const handleElementChange = (index: number, field: 'U' | 'A', value: string) => {
         const newElements = [...elements];
-        newElements[index][field] = parseFloat(value) || 0;
+        const parsed = parseFloat(value);
+        newElements[index][field] = isNaN(parsed) ? 0 : Math.abs(parsed);
         setElements(newElements);
     };
 
@@ -86,7 +87,7 @@ export default function Byelement() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                 <div className="lg:col-span-8 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <MetricCard
@@ -94,7 +95,10 @@ export default function Byelement() {
                             value={deltaT}
                             unit="K"
                             name="deltaT"
-                            onChange={(e) => setDeltaT(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => {
+                                const parsed = parseFloat(e.target.value);
+                                setDeltaT(isNaN(parsed) ? 0 : Math.abs(parsed));
+                            }}
                         />
                     </div>
 
@@ -124,9 +128,12 @@ export default function Byelement() {
                                         <div className="flex-1 min-w-[140px]">
                                             <Label className="text-xs mb-1.5 block" style={{ color: labelColor }}>U-value (W/m²·K)</Label>
                                             <Input
-                                                type="number"
+                                            type="number"
                                                 value={element.U}
                                                 onChange={(e) => handleElementChange(index, 'U', e.target.value)}
+                                                min={0}
+                                                onFocus={(e) => e.target.select()}
+                                                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                                                 className="h-10"
                                                 style={{
                                                     background: cardBg,
@@ -144,6 +151,9 @@ export default function Byelement() {
                                                 type="number"
                                                 value={element.A}
                                                 onChange={(e) => handleElementChange(index, 'A', e.target.value)}
+                                                min={0}
+                                                onFocus={(e) => e.target.select()}
+                                                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                                                 className="h-10"
                                                 style={{
                                                     background: cardBg,
@@ -185,12 +195,12 @@ export default function Byelement() {
                     </div>
 
                     {/* Live Formula Preview */}
-                    <div className="rounded-2xl p-6 relative" style={{ background: previewBg, border: previewBorder }}>
-                        <div className="flex justify-between items-center mb-8">
+                    <div className="rounded-2xl p-4 md:p-6 relative w-full overflow-hidden" style={{ background: previewBg, border: previewBorder }}>
+                        <div className="flex justify-between items-center mb-4 md:mb-8 pr-8 md:pr-0">
                             <h3 className="text-[#1A73E8] text-xs font-bold uppercase tracking-wider">LIVE FORMULA PREVIEW</h3>
-                            <ArrowLeft className="h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#cbd5e1" }} />
                         </div>
-                        <div className="text-xl flex justify-center py-8 mb-8 w-full overflow-x-auto" style={{ color: titleColor }}>
+                        <ArrowLeft className="absolute top-4 right-4 md:top-6 md:right-6 h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#cbd5e1" }} />
+                        <div className="text-xs sm:text-base md:text-xl flex justify-start md:justify-center py-3 md:py-8 mb-2 md:mb-8 w-full overflow-x-auto px-2 md:px-0" style={{ color: titleColor }}>
                             <BlockMath math={`\\begin{align*}
                                 ${elements.map((e, index) => `UA_{${index + 1}} &= U_{${index + 1}} \\times A_{${index + 1}} = ${e.U || 0} \\times ${e.A || 0} = ${((e.U || 0) * (e.A || 0)).toFixed(2)} \\; \\text{W/K} \\\\[6pt]`).join('')}
                                 UA_{\\text{total}} &= ${elements.map((_, i) => `UA_{${i + 1}}`).join(' + ')} \\\\

@@ -6,15 +6,16 @@ export default function Footer() {
   const { isDark } = useGlobalTheme();
 
   return (
-    <footer style={{
-      display: "flex", alignItems: "center", justifyContent: "center",
-      gap: "20px", padding: "12px 20px",
-      background: isDark ? "#0f172a" : "#f0f4f8",
-      borderTop: `1px solid ${isDark ? "rgba(51,65,85,0.6)" : "rgba(203,213,225,0.5)"}`,
-      fontFamily: "'Share Tech Mono', monospace",
-      fontSize: "10px", letterSpacing: "0.12em",
-      transition: "background 0.3s, border-color 0.3s",
-    }}>
+    <footer
+      className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 py-4 px-5 text-center transition-all duration-300"
+      style={{
+        background: isDark ? "#0f172a" : "#f0f4f8",
+        borderTop: `1px solid ${isDark ? "rgba(51,65,85,0.6)" : "rgba(203,213,225,0.5)"}`,
+        fontFamily: "'Share Tech Mono', monospace",
+        fontSize: "10px",
+        letterSpacing: "0.12em",
+      }}
+    >
       <Link
         href="/privacy-policy"
         style={{
@@ -26,7 +27,7 @@ export default function Footer() {
       >
         PRIVACY POLICY
       </Link>
-      <span style={{ color: isDark ? "#334155" : "#cbd5e1" }}>|</span>
+      <span className="hidden sm:inline" style={{ color: isDark ? "#334155" : "#cbd5e1" }}>|</span>
       <Link
         href="/terms"
         style={{
@@ -38,7 +39,7 @@ export default function Footer() {
       >
         TERMS OF CONDITIONS
       </Link>
-      <span style={{ color: isDark ? "#334155" : "#cbd5e1" }}>|</span>
+      <span className="hidden sm:inline" style={{ color: isDark ? "#334155" : "#cbd5e1" }}>|</span>
       <span style={{ color: isDark ? "#334155" : "#94a3b8" }}>© 2025 VENTWISE</span>
       <style>{`
         .footer-legal-link:hover { color: ${isDark ? "#60a5fa" : "#2563eb"} !important; }

@@ -22,6 +22,17 @@ export function GlobalThemeProvider({ children }: { children: ReactNode }) {
     if (saved === "dark") setIsDark(true);
   }, []);
 
+  // Apply dark class to document root
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      document.body.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.body.classList.remove("dark");
+    }
+  }, [isDark]);
+
   const toggleTheme = () => {
     setIsDark((prev) => {
       const next = !prev;

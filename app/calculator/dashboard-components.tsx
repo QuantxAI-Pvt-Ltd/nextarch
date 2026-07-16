@@ -15,6 +15,7 @@ interface MetricCardProps {
     min?: number;
     max?: number;
     step?: number;
+    // allowNegative intentionally removed — all fields use Math.abs() at the call-site
 }
 
 export function MetricCard({
@@ -67,9 +68,11 @@ export function MetricCard({
                         name={name}
                         value={value}
                         onChange={onChange}
-                        min={min}
+                        min={min ?? 0}
                         max={max}
                         step={step}
+                        onFocus={(e) => e.target.select()}
+                        onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                         className="text-3xl font-bold text-[#1A73E8] tracking-tight bg-transparent border-none focus:outline-none w-full"
                     />
                 ) : (
@@ -101,16 +104,16 @@ export function ResultCard({
     label: string;
 }) {
     return (
-        <div className="bg-[#1A73E8] rounded-3xl p-6 sm:p-8 relative overflow-hidden min-h-[160px] sm:h-64 flex flex-col justify-between text-white shadow-lg shadow-blue-900/20">
+        <div className="bg-[#1A73E8] rounded-3xl p-5 md:p-8 relative overflow-hidden min-h-[100px] md:min-h-[160px] md:h-64 flex flex-col justify-center md:justify-between text-white shadow-lg shadow-blue-900/20">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl" />
-            <div className="relative z-10 w-full">
-                <div className="flex justify-between items-start opacity-80 mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
+            <div className="relative z-10 w-full flex flex-col items-center md:items-start text-center md:text-left">
+                <div className="flex justify-center md:justify-between items-start opacity-80 mb-1 md:mb-2">
+                    <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">{label}</span>
                 </div>
-                <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-4xl sm:text-6xl font-bold tracking-tighter">{value}</span>
-                    <span className="text-xl sm:text-2xl font-medium opacity-80">{unit}</span>
+                <div className="flex items-baseline justify-center md:justify-start gap-2 flex-wrap">
+                    <span className="text-3xl md:text-6xl font-bold tracking-tighter">{value}</span>
+                    <span className="text-lg md:text-2xl font-medium opacity-80">{unit}</span>
                 </div>
             </div>
         </div>

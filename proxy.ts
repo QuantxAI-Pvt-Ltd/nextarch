@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Routes that require a logged-in session
-const PROTECTED = ["/calculator"];
+const PROTECTED = ["/calculator", "/subscribe"];
 
 // Routes only accessible when NOT logged in (redirect to /description if already authed)
 const AUTH_ONLY = ["/login", "/register"];
 
-export function proxy(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const user = request.cookies.get("nextarch_user")?.value;
 

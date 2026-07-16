@@ -63,6 +63,7 @@ export default function SubscribePage() {
   const { isDark, toggleTheme } = useGlobalTheme();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // ── Auth guard: redirect to login only on definitive 401 ──────
   // Do NOT redirect on network errors or 5xx — those are transient
@@ -70,9 +71,17 @@ export default function SubscribePage() {
   useEffect(() => {
     fetch("/api/usage")
       .then((r) => {
-        if (r.status === 401) router.replace("/login?from=/subscribe");
+        if (r.status === 401) {
+          router.replace("/login?from=/subscribe");
+        } else {
+          setAuthChecked(true);
+        }
       })
-      .catch(() => null); // silent on network failure
+      .catch(() => {
+        // On network error, optimistically show the page
+        // (the middleware already blocked unauthenticated users)
+        setAuthChecked(true);
+      });
   }, [router]);
 
   const handleSubscribe = useCallback(
@@ -155,6 +164,17 @@ export default function SubscribePage() {
     },
     [router]
   );
+
+  // Show a minimal loading screen while confirming auth to prevent flash
+  if (!authChecked) {
+    return (
+      <div className={`sub-root${isDark ? " dark" : ""}`} style={{ justifyContent: "center", alignItems: "center" }}>
+        <div className="sub-grid" />
+        <div className="sub-glow" />
+        <span className="sub-spinner" style={{ width: 32, height: 32, borderWidth: 3 }} />
+      </div>
+    );
+  }
 
   return (
     <div className={`sub-root${isDark ? " dark" : ""}`}>
