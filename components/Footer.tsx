@@ -4,6 +4,7 @@ import { useGlobalTheme } from "./global-theme-context";
 
 export default function Footer() {
   const { isDark } = useGlobalTheme();
+
   return (
     <footer
       className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 py-4 px-5 text-center transition-all duration-300"
