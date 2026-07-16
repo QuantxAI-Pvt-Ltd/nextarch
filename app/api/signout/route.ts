@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function GET(request: NextRequest) {
+export function POST(request: NextRequest) {
   const url = request.nextUrl.clone();
   url.pathname = "/description";
   url.search = "";
