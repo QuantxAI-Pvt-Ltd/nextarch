@@ -15,6 +15,7 @@ class SubscribePage:
     CTA_BTNS     = (By.CSS_SELECTOR, ".sub-cta-btn")
     ERROR_MSG    = (By.CSS_SELECTOR, ".sub-error")
     BACK_LINK    = (By.CSS_SELECTOR, ".sub-back-link")
+    SIGNOUT_BTN  = (By.CSS_SELECTOR, ".sub-signout-btn")
 
     def __init__(self, driver, base_url: str):
         self.driver = driver
@@ -23,6 +24,14 @@ class SubscribePage:
 
     def open(self):
         self.driver.get(f"{self.base_url}{self.URL_SUFFIX}")
+        return self
+
+    def is_signout_btn_visible(self) -> bool:
+        els = self.driver.find_elements(*self.SIGNOUT_BTN)
+        return len(els) > 0 and els[0].is_displayed()
+
+    def click_signout(self):
+        self.driver.find_element(*self.SIGNOUT_BTN).click()
         return self
 
     def is_dark(self) -> bool:
