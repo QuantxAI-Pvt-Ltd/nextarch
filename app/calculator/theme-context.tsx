@@ -16,7 +16,7 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const { isDark: globalIsDark, toggleTheme: globalToggle } = useGlobalTheme();
-    const [theme, setTheme] = useState<Theme>("dark");
+    const [theme, setTheme] = useState<Theme>(globalIsDark ? "dark" : "light");
 
     // Sync local state from global on mount and whenever global changes
     useEffect(() => {
