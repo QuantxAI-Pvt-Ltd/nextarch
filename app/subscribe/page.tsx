@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PieChart, Check, Zap, Shield, Star, ArrowLeft } from "lucide-react";
+import { PieChart, Check, Zap, Shield, Star, ArrowLeft, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useGlobalTheme } from "@/components/global-theme-context";
 
@@ -64,6 +64,13 @@ export default function SubscribePage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await fetch("/api/signout", { method: "POST" });
+    window.location.href = "/description";
+  };
 
   // ── Auth guard: redirect to login only on definitive 401 ──────
   // Do NOT redirect on network errors or 5xx — those are transient
@@ -195,25 +202,47 @@ export default function SubscribePage() {
           <span>Ventwise</span>
         </div>
 
-        <button
-          className="sub-theme-btn"
-          onClick={toggleTheme}
-          aria-label="Toggle theme"
-        >
-          {isDark ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" />
-              <line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          )}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            className="sub-theme-btn"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+          >
+            {isDark ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+          </button>
+
+          <button
+            className="sub-signout-btn"
+            onClick={handleSignOut}
+            disabled={signingOut}
+            aria-label="Sign Out"
+            style={{ opacity: signingOut ? 0.7 : 1, cursor: signingOut ? "not-allowed" : "pointer" }}
+          >
+            {signingOut ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Signing out...</span>
+              </>
+            ) : (
+              <>
+                <LogOut size={14} />
+                <span>Sign Out</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Hero */}
@@ -389,6 +418,17 @@ export default function SubscribePage() {
         .sub-theme-btn:hover { border-color: #3b82f6; color: #3b82f6; }
         .sub-root.dark .sub-theme-btn { border-color: #1e293b; color: #475569; }
         .sub-root.dark .sub-theme-btn:hover { border-color: #6366f1; color: #818cf8; }
+
+        .sub-signout-btn {
+          background: none; border: 1px solid #e2e8f0; border-radius: 8px;
+          padding: 6px 12px; cursor: pointer; color: #64748b;
+          display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+          font-family: 'Share Tech Mono', monospace; font-size: 11px;
+          letter-spacing: 0.05em;
+        }
+        .sub-signout-btn:hover { border-color: #ef4444; color: #ef4444; }
+        .sub-root.dark .sub-signout-btn { border-color: #1e293b; color: #64748b; }
+        .sub-root.dark .sub-signout-btn:hover { border-color: #f87171; color: #f87171; }
 
         /* ── Hero ── */
         .sub-hero {

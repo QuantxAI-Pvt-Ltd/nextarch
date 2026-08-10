@@ -1,11 +1,41 @@
 "use client"
 import { loginaction } from "../actions/login";
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
-import { PieChart } from "lucide-react";
+import { PieChart, Loader2 } from "lucide-react";
 import { useGlobalTheme } from "@/components/global-theme-context";
+
+function LoginSubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      className="login-submit-btn"
+      disabled={pending}
+      style={{
+        opacity: pending ? 0.85 : 1,
+        cursor: pending ? "not-allowed" : "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "8px",
+      }}
+    >
+      {pending ? (
+        <>
+          <Loader2 size={16} className="login-spin" />
+          <span>Loading...</span>
+        </>
+      ) : (
+        "LOGIN"
+      )}
+    </button>
+  );
+}
 
 function LoginInner() {
   const [state, formAction] = useActionState(loginaction, null);
@@ -127,9 +157,7 @@ function LoginInner() {
             </div>
 
             {/* Submit */}
-            <button type="submit" className="login-submit-btn">
-              LOGIN
-            </button>
+            <LoginSubmitButton />
             <Link href="/register" className="reg-submit-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
               REGISTER
             </Link>
@@ -548,6 +576,14 @@ function LoginInner() {
           color: #f87171;
           background: rgba(239,68,68,0.12);
           border-color: rgba(239,68,68,0.35);
+        }
+
+        .login-spin {
+          animation: login-spin 0.8s linear infinite;
+        }
+        @keyframes login-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>

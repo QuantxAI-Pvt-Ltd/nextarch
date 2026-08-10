@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Zap, ArrowRight, X } from "lucide-react";
+import { Lock, Zap, ArrowRight, X, LogOut, Loader2 } from "lucide-react";
 
 interface PaywallPopupProps {
   trialDaysLeft: number;
@@ -11,8 +12,15 @@ interface PaywallPopupProps {
 
 export function PaywallPopup({ trialDaysLeft, plan, onDismiss }: PaywallPopupProps) {
   const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
   const isBlocked = !plan && trialDaysLeft === 0;
   const isWarning = !plan && trialDaysLeft > 0 && trialDaysLeft <= 2;
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    await fetch("/api/signout", { method: "POST" });
+    window.location.href = "/description";
+  };
 
   // ── Soft warning banner (1–2 days left) ─────────────────────
   if (isWarning) {
@@ -104,6 +112,25 @@ export function PaywallPopup({ trialDaysLeft, plan, onDismiss }: PaywallPopupPro
         >
           <Zap size={15} />
           View Plans &amp; Subscribe
+        </button>
+
+        <button
+          className="pw-signout-btn"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          style={{ opacity: signingOut ? 0.7 : 1, cursor: signingOut ? "not-allowed" : "pointer" }}
+        >
+          {signingOut ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Signing out...</span>
+            </>
+          ) : (
+            <>
+              <LogOut size={14} />
+              <span>Sign Out</span>
+            </>
+          )}
         </button>
 
         <p className="pw-note">Cancel anytime · Instant activation</p>
@@ -218,10 +245,28 @@ export function PaywallPopup({ trialDaysLeft, plan, onDismiss }: PaywallPopupPro
           display: flex; align-items: center; justify-content: center; gap: 8px;
           transition: opacity 0.2s, transform 0.15s;
           box-shadow: 0 4px 16px rgba(37,99,235,0.3);
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
         .pw-cta:hover { opacity: 0.9; transform: translateY(-1px); }
         .pw-cta:active { transform: translateY(0); }
+
+        .pw-signout-btn {
+          width: 100%; height: 42px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 12px;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 12px; font-weight: 600; color: #94a3b8;
+          letter-spacing: 0.12em; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          transition: all 0.2s ease;
+          margin-bottom: 14px;
+        }
+        .pw-signout-btn:hover {
+          background: rgba(239, 68, 68, 0.1);
+          border-color: rgba(239, 68, 68, 0.3);
+          color: #f87171;
+        }
 
         .pw-note {
           font-size: 11px; color: #475569;
@@ -232,3 +277,4 @@ export function PaywallPopup({ trialDaysLeft, plan, onDismiss }: PaywallPopupPro
     </div>
   );
 }
+

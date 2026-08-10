@@ -58,6 +58,11 @@ class TestSubscribeContent:
             disabled = btn.get_attribute("disabled")
             assert disabled is None, "CTA buttons should not be disabled initially"
 
+    def test_signout_button_visible(self, logged_in, base_url):
+        """Sign out button should be visible in subscribe page topbar."""
+        page = SubscribePage(logged_in, base_url).open()
+        assert page.is_signout_btn_visible(), "Sign out button should be visible in topbar"
+
 
 class TestSubscribeTheme:
     """TC-SUB-04: Theme toggle on subscribe page syncs footer."""

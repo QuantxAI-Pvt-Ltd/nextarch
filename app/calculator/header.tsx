@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Sun, Moon, Check, Menu, Zap, Crown, Clock, LogOut, ChevronRight, CreditCard, User } from "lucide-react";
+import { Sun, Moon, Check, Menu, Zap, Crown, Clock, LogOut, ChevronRight, CreditCard, User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "./theme-context";
 import { useSidebar } from "./sidebar-context";
@@ -21,6 +21,7 @@ interface UsageData {
 export function Header() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
+    const [signingOut, setSigningOut] = useState(false);
     const { theme, toggleTheme } = useTheme();
     const { isCollapsed, toggleMobileMenu } = useSidebar();
     const isDark = theme === "dark";
@@ -330,17 +331,31 @@ export function Header() {
                             <div className="p-2">
                                 <button
                                     onClick={async () => {
-                                        setProfileOpen(false);
+                                        setSigningOut(true);
                                         await fetch("/api/signout", { method: "POST" });
                                         window.location.href = "/description";
                                     }}
+                                    disabled={signingOut}
                                     className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm transition-colors"
-                                    style={{ color: isDark ? "#64748b" : "#94a3b8" }}
+                                    style={{
+                                        color: isDark ? "#64748b" : "#94a3b8",
+                                        opacity: signingOut ? 0.7 : 1,
+                                        cursor: signingOut ? "not-allowed" : "pointer"
+                                    }}
                                     onMouseEnter={e => (e.currentTarget.style.color = "#f87171")}
                                     onMouseLeave={e => (e.currentTarget.style.color = isDark ? "#64748b" : "#94a3b8")}
                                 >
-                                    <LogOut size={15} />
-                                    Sign out
+                                    {signingOut ? (
+                                        <>
+                                            <Loader2 size={15} className="animate-spin" />
+                                            <span>Signing out...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <LogOut size={15} />
+                                            <span>Sign out</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
