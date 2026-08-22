@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
 import { useTheme } from "../theme-context";
+import EpwViewer from "../epw-viewer";
 
 interface WindowElement {
     qa: number;
@@ -31,7 +32,8 @@ export default function SolarHeatGain() {
     const [loading, setLoading] = useState(false);
 
     const handleAddElement = () => {
-        setElements([...elements, { qa: 1, area: 0, shgc: 0, pf: 1, radiation: 800 }]);
+        const currentRad = elements[0]?.radiation ?? 800;
+        setElements([...elements, { qa: 1, area: 0, shgc: 0, pf: 1, radiation: currentRad }]);
     };
 
     const handleRemoveElement = (index: number) => {
@@ -50,8 +52,6 @@ export default function SolarHeatGain() {
     const handleCalculate = async () => {
         setLoading(true);
         try {
-            // Note: API integration might need to be adjusted to support arrays for solar heat gain.
-            // For now, calculating the sum internally to match the live preview functionality
             const Q_solar = elements.reduce((acc, el) => acc + (el.qa * el.area * el.shgc * el.pf * el.radiation), 0);
             setResult({ Q_solar });
         } catch (error) {
@@ -90,6 +90,15 @@ export default function SolarHeatGain() {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                 <div className="lg:col-span-8 space-y-6">
+                    {/* Interactive EPW Weather Viewer for Solar Radiation */}
+                    <EpwViewer
+                        showRadiation={true}
+                        onSelectHour={(data) => {
+                            const rad = data.radiation;
+                            setElements(prev => prev.map(el => ({ ...el, radiation: rad })));
+                        }}
+                    />
+
                     <div className="space-y-4">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-lg font-semibold" style={{ color: titleColor }}>Window Types</h2>
@@ -102,7 +111,6 @@ export default function SolarHeatGain() {
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Window Type
                             </Button>
-
                         </div>
 
                         {elements.map((element, index) => (

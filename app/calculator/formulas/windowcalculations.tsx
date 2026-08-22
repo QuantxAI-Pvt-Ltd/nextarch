@@ -8,6 +8,7 @@ import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "../theme-context";
+import EpwViewer from "../epw-viewer";
 
 interface ResultData {
     Q: number;
@@ -40,7 +41,8 @@ export default function Windowcalculations() {
     const handleCalculate = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/window-calculations`, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/api/window-calculations`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -108,6 +110,13 @@ export default function Windowcalculations() {
                         <MetricCard label="Flow Coefficient (K)" value={K} unit="" name="K" step={0.05} onChange={handleChange} />
                         <MetricCard label="Wind Speed (V)" value={V} unit="m/h" name="V" onChange={handleChange} />
                     </div>
+
+                    {/* Interactive EPW Weather Viewer */}
+                    <EpwViewer
+                        onSelectHour={(data) => {
+                            setValues(prev => ({ ...prev, V: data.wind_speed_mh }));
+                        }}
+                    />
 
                     {/* Equal Openings toggle */}
                     <div className="rounded-2xl p-5 flex items-center justify-between" style={{ background: cardBg, border: cardBorder }}>

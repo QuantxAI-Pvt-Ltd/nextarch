@@ -517,6 +517,97 @@ async def query_epw(request: EPWDataRequest):
         )
 
 
+class EPWDayDataRequest(BaseModel):
+    year: int = Field(..., description="Year")
+    month: int = Field(..., description="Month (1-12)")
+    day: int = Field(..., description="Day (1-31)")
+
+
+class EPWHourlyRecord(BaseModel):
+    hour: int
+    time_label: str
+    temperature: float
+    wind_speed_ms: float
+    wind_speed_mh: float
+    radiation: float
+    global_horizontal_radiation: float
+    direct_normal_radiation: float
+    diffuse_horizontal_radiation: float
+
+
+@app.post("/api/query-epw-day")
+async def query_epw_day(request: EPWDayDataRequest):
+    """Query all 24 hours of EPW data for a specific date to populate the viewer table"""
+    try:
+        global epw_data
+        
+        if epw_data is None:
+            return {
+                "success": False,
+                "message": "No EPW file uploaded. Please upload an EPW file first.",
+                "records": []
+            }
+        
+        mask = (
+            (epw_data['Year'] == request.year) &
+            (epw_data['Month'] == request.month) &
+            (epw_data['Day'] == request.day)
+        )
+        
+        selected_rows = epw_data[mask].sort_values(by='Hour')
+        
+        if selected_rows.empty:
+            return {
+                "success": False,
+                "message": f"No data found for {request.year}-{request.month:02d}-{request.day:02d}",
+                "records": []
+            }
+        
+        records = []
+        for _, row in selected_rows.iterrows():
+            hr = int(row['Hour'])
+            temp = float(row['DryBulbTemp']) if 'DryBulbTemp' in row else 0.0
+            wind_ms = float(row['WindSpeed']) if 'WindSpeed' in row else 0.0
+            wind_mh = wind_ms * 3600.0
+            gh_rad = float(row['GlobalHorizontalRadiation']) if 'GlobalHorizontalRadiation' in row else 0.0
+            dn_rad = float(row['DirectNormalRadiation']) if 'DirectNormalRadiation' in row else 0.0
+            df_rad = float(row['DiffuseHorizontalRadiation']) if 'DiffuseHorizontalRadiation' in row else 0.0
+            
+            if hr == 24:
+                time_label = "12 AM"
+            elif hr == 12:
+                time_label = "12 PM"
+            elif hr > 12:
+                time_label = f"{hr - 12} PM"
+            else:
+                time_label = f"{hr} AM"
+            
+            records.append({
+                "hour": hr,
+                "time_label": time_label,
+                "temperature": round(temp, 2),
+                "wind_speed_ms": round(wind_ms, 2),
+                "wind_speed_mh": round(wind_mh, 0),
+                "radiation": round(gh_rad, 2),
+                "global_horizontal_radiation": round(gh_rad, 2),
+                "direct_normal_radiation": round(dn_rad, 2),
+                "diffuse_horizontal_radiation": round(df_rad, 2),
+            })
+        
+        return {
+            "success": True,
+            "message": f"{len(records)} hourly records loaded.",
+            "records": records
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error querying EPW day data: {str(e)}",
+            "records": []
+        }
+
+
 # Initialize global EPW data storage
 epw_data = None
+
 
