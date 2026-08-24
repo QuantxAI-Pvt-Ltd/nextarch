@@ -43,7 +43,10 @@ export function TopLoadingBar() {
 
   // Trigger completion when pathname or searchParams change
   useEffect(() => {
-    finishLoading();
+    const t = setTimeout(() => {
+      finishLoading();
+    }, 0);
+    return () => clearTimeout(t);
   }, [pathname, searchParams, finishLoading]);
 
   // Intercept internal link clicks to start progress bar

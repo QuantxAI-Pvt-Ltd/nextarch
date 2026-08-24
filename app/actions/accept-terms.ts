@@ -1,17 +1,18 @@
-"use server"
+"use server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import clientPromise from "@/lib/mongodb";
+import { getCurrentUserEmail } from "@/lib/session";
 
 // ── Version constants — bump these to force re-acceptance on next login ──
-const CURRENT_TERMS_VERSION   = "1.0";
+const CURRENT_TERMS_VERSION = "1.0";
 const CURRENT_PRIVACY_VERSION = "1.0";
 
 export async function acceptTermsAction(_prev: unknown, formdata: FormData) {
   const cookieStore = await cookies();
 
-  // ── Guard: must be authenticated ────────────────────────────────────────
-  const email = cookieStore.get("nextarch_user")?.value;
+  // ── Guard: must be verified authenticated user ───────────────────────────
+  const email = await getCurrentUserEmail();
   if (!email) {
     redirect("/login");
   }
@@ -23,7 +24,7 @@ export async function acceptTermsAction(_prev: unknown, formdata: FormData) {
   }
 
   // ── Read which checkboxes were submitted ─────────────────────────────────
-  const termsSubmitted   = formdata.get("terms_accepted") === "on";
+  const termsSubmitted = formdata.get("terms_accepted") === "on";
   const privacySubmitted = formdata.get("privacy_accepted") === "on";
 
   if (!termsSubmitted && !privacySubmitted) {
@@ -36,7 +37,7 @@ export async function acceptTermsAction(_prev: unknown, formdata: FormData) {
     return { error: "You must accept the Privacy Policy." };
   }
 
-  // ── Update MongoDB ────────────────────────────────────────────────────────
+  // ── Update MongoDB (parameterized) ────────────────────────────────────────
   const client = await clientPromise;
   const db = client.db("nextarch");
   const users = db.collection("users");
@@ -45,17 +46,17 @@ export async function acceptTermsAction(_prev: unknown, formdata: FormData) {
   const updateFields: Record<string, unknown> = {};
 
   if (termsSubmitted) {
-    updateFields.termsAccepted    = true;
-    updateFields.termsAcceptedAt  = now;
-    updateFields.termsVersion     = CURRENT_TERMS_VERSION;
+    updateFields.termsAccepted = true;
+    updateFields.termsAcceptedAt = now;
+    updateFields.termsVersion = CURRENT_TERMS_VERSION;
   }
   if (privacySubmitted) {
-    updateFields.privacyAccepted    = true;
-    updateFields.privacyAcceptedAt  = now;
-    updateFields.privacyVersion     = CURRENT_PRIVACY_VERSION;
+    updateFields.privacyAccepted = true;
+    updateFields.privacyAcceptedAt = now;
+    updateFields.privacyVersion = CURRENT_PRIVACY_VERSION;
   }
 
-  await users.updateOne({ email }, { $set: updateFields });
+  await users.updateOne({ email: String(email) }, { $set: updateFields });
 
   // ── Clear pending cookie ──────────────────────────────────────────────────
   cookieStore.delete("nextarch_pending_legal");

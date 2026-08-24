@@ -54,9 +54,8 @@ export default function SolarHeatGain() {
         try {
             const Q_solar = elements.reduce((acc, el) => acc + (el.qa * el.area * el.shgc * el.pf * el.radiation), 0);
             setResult({ Q_solar });
-        } catch (error) {
-            console.error("Error calculating:", error);
-            alert("Error calculating.");
+        } catch {
+            alert("Unable to complete calculation. Please check your inputs.");
         } finally {
             setLoading(false);
         }

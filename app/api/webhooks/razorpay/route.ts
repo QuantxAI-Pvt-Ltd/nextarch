@@ -15,108 +15,117 @@ const PLAN_NAMES: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-  // ── 1. Read raw body (needed for signature verification) ─────
-  const rawBody = await request.text();
-  const signature = request.headers.get("x-razorpay-signature") ?? "";
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
+  try {
+    // ── 1. Read raw body (needed for signature verification) ─────
+    const rawBody = await request.text();
+    const signature = request.headers.get("x-razorpay-signature") ?? "";
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
 
-  // ── 2. Verify Razorpay webhook signature ─────────────────────
-  const expectedSig = crypto
-    .createHmac("sha256", webhookSecret)
-    .update(rawBody)
-    .digest("hex");
+    if (!webhookSecret || !signature) {
+      return NextResponse.json({ error: "Unauthorized webhook" }, { status: 400 });
+    }
 
-  if (expectedSig !== signature) {
-    console.error("[Webhook] Signature mismatch");
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-  }
+    // ── 2. Verify Razorpay webhook signature (Constant-Time) ──────
+    const expectedSig = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(rawBody)
+      .digest("hex");
 
-  // ── 3. Parse event ───────────────────────────────────────────
-  const event = JSON.parse(rawBody) as {
-    event: string;
-    payload: {
-      subscription?: {
-        entity: {
-          id: string;
-          plan_id: string;
-          status: string;
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSig);
+
+    if (
+      sigBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+    ) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+
+    // ── 3. Parse event safely ───────────────────────────────────
+    const event = JSON.parse(rawBody) as {
+      event?: string;
+      payload?: {
+        subscription?: {
+          entity?: {
+            id?: string;
+            plan_id?: string;
+            status?: string;
+          };
         };
-      };
-      payment?: {
-        entity: {
-          id: string;
+        payment?: {
+          entity?: {
+            id?: string;
+          };
         };
       };
     };
-  };
 
-  const db = (await clientPromise).db("nextarch");
-  const users = db.collection("users");
+    if (!event.event) {
+      return NextResponse.json({ error: "Invalid event payload" }, { status: 400 });
+    }
 
-  // ── 4. Handle events ─────────────────────────────────────────
-  switch (event.event) {
+    const db = (await clientPromise).db("nextarch");
+    const users = db.collection("users");
 
-    // Renewal payment succeeded → extend planExpiresAt
-    case "subscription.charged": {
-      const sub = event.payload.subscription?.entity;
-      if (!sub) break;
+    // ── 4. Handle events ─────────────────────────────────────────
+    switch (event.event) {
+      // Renewal payment succeeded → extend planExpiresAt
+      case "subscription.charged": {
+        const sub = event.payload?.subscription?.entity;
+        if (!sub?.id || !sub?.plan_id) break;
 
-      const { id: subId, plan_id } = sub;
-      const daysToAdd = PLAN_DAYS[plan_id] ?? 30;
-      const planName = PLAN_NAMES[plan_id] ?? "monthly";
+        const subId = String(sub.id);
+        const planId = String(sub.plan_id);
+        const daysToAdd = PLAN_DAYS[planId] ?? 30;
+        const planName = PLAN_NAMES[planId] ?? "monthly";
 
-      // Find user by their stored subscription ID
-      const user = await users.findOne({ razorpaySubId: subId });
-      if (!user) {
-        console.warn(`[Webhook] No user found for subscription ${subId}`);
+        const user = await users.findOne({ razorpaySubId: subId });
+        if (!user) break;
+
+        const newExpiry = new Date();
+        newExpiry.setDate(newExpiry.getDate() + daysToAdd);
+
+        await users.updateOne(
+          { razorpaySubId: subId },
+          {
+            $set: {
+              planExpiresAt: newExpiry,
+              plan: planName,
+              lastRenewedAt: new Date(),
+              razorpayPaymentId: event.payload?.payment?.entity?.id
+                ? String(event.payload.payment.entity.id)
+                : undefined,
+            },
+          }
+        );
         break;
       }
 
-      // Extend from NOW (handles gaps if paywall was showing)
-      const newExpiry = new Date();
-      newExpiry.setDate(newExpiry.getDate() + daysToAdd);
+      // Subscription cancelled or payment failed → revoke access
+      case "subscription.cancelled":
+      case "subscription.completed":
+      case "subscription.halted": {
+        const sub = event.payload?.subscription?.entity;
+        if (!sub?.id) break;
 
-      await users.updateOne(
-        { razorpaySubId: subId },
-        {
-          $set: {
-            planExpiresAt: newExpiry,
-            plan: planName,
-            lastRenewedAt: new Date(),
-            razorpayPaymentId: event.payload.payment?.entity.id,
-          },
-        }
-      );
+        await users.updateOne(
+          { razorpaySubId: String(sub.id) },
+          {
+            $set: {
+              plan: null,
+              planExpiresAt: new Date(), // expire immediately
+            },
+          }
+        );
+        break;
+      }
 
-      console.log(`[Webhook] Renewed ${user.email} → ${planName} until ${newExpiry.toISOString()}`);
-      break;
+      default:
+        break;
     }
 
-    // Subscription cancelled or payment failed → revoke access
-    case "subscription.cancelled":
-    case "subscription.completed":
-    case "subscription.halted": {
-      const sub = event.payload.subscription?.entity;
-      if (!sub) break;
-
-      await users.updateOne(
-        { razorpaySubId: sub.id },
-        {
-          $set: {
-            plan: null,
-            planExpiresAt: new Date(), // expire immediately
-          },
-        }
-      );
-
-      console.log(`[Webhook] Access revoked for subscription ${sub.id} (${event.event})`);
-      break;
-    }
-
-    default:
-      // Log unhandled events but always return 200 so Razorpay doesn't retry
-      console.log(`[Webhook] Unhandled event: ${event.event}`);
+    return NextResponse.json({ received: true });
+  } catch {
+    return NextResponse.json({ error: "Internal webhook processing error" }, { status: 500 });
   }
-
-  return NextResponse.json({ received: true });
 }

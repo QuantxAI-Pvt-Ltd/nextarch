@@ -130,6 +130,16 @@ export default function EpwViewer({
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // Security check: validate extension and file size (< 15MB)
+        if (!file.name.toLowerCase().endsWith(".epw")) {
+            setErrorMessage("Invalid file format. Only standard .epw files are supported.");
+            return;
+        }
+        if (file.size > 15 * 1024 * 1024) {
+            setErrorMessage("File is too large. Maximum allowed EPW file size is 15MB.");
+            return;
+        }
+
         setFileName(file.name);
         setLoading(true);
         setErrorMessage("");
@@ -167,9 +177,8 @@ export default function EpwViewer({
             } else {
                 setErrorMessage(data.message || "Failed to parse EPW file");
             }
-        } catch (error) {
-            console.error("Upload error:", error);
-            setErrorMessage("Error uploading EPW file. Ensure backend is running.");
+        } catch {
+            setErrorMessage("Error uploading EPW file. Ensure backend service is reachable.");
         } finally {
             setLoading(false);
         }
@@ -200,8 +209,8 @@ export default function EpwViewer({
                         setSelectedHour(currentRecord.hour);
                     }
                 }
-            } catch (err) {
-                console.error("Day query error:", err);
+            } catch {
+                if (active) setErrorMessage("Failed to load daily EPW records.");
             } finally {
                 if (active) setLoading(false);
             }
@@ -245,8 +254,8 @@ export default function EpwViewer({
                         onSelectMonthlyDiffuse(diffuseResult);
                     }
                 }
-            } catch (err) {
-                console.error("Monthly diffuse query error:", err);
+            } catch {
+                if (active) setErrorMessage("Failed to load monthly diffuse radiation.");
             } finally {
                 if (active) setLoading(false);
             }
