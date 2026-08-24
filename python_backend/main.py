@@ -1,5 +1,8 @@
-from fastapi import FastAPI, UploadFile, File
+import os
+from fastapi import FastAPI, UploadFile, File, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from math import sqrt
@@ -7,16 +10,43 @@ import uvicorn
 import pandas as pd
 import io
 
-app = FastAPI(title="HVAC Formula Calculator API")
+app = FastAPI(
+    title="HVAC Formula Calculator API",
+    docs_url="/docs" if os.getenv("ENVIRONMENT") != "production" else None,
+    redoc_url="/redoc" if os.getenv("ENVIRONMENT") != "production" else None,
+)
 
-# CORS middleware to allow frontend access
+# CORS middleware with environment-based origins
+raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://ventwisebackend.vercel.app")
+allowed_origins = [orig.strip() for orig in raw_origins.split(",") if orig.strip()]
+if "*" in allowed_origins or not allowed_origins:
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# ==================== Global Exception Handlers ====================
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"success": False, "error": "Invalid request parameters", "details": exc.errors()},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"success": False, "error": "An internal server error occurred"},
+    )
 
 
 # ==================== Pydantic Models ====================
@@ -453,10 +483,10 @@ async def get_epw_day(request: EPWDayRequest):
             rows=rows
         )
 
-    except Exception as e:
+    except Exception:
         return EPWDayResponse(
             success=False,
-            message=f"Error fetching day data: {str(e)}",
+            message="Error retrieving day data from EPW dataset.",
             rows=[]
         )
 
@@ -465,11 +495,27 @@ async def get_epw_day(request: EPWDayRequest):
 async def upload_epw(file: UploadFile = File(...)):
     """Upload and store EPW file data in memory for later queries"""
     try:
-        # Read the file content
+        # 1. Filename validation
+        if not file.filename or not file.filename.lower().endswith(".epw"):
+            return {
+                "success": False,
+                "message": "Invalid file type. Only .epw weather files are supported.",
+                "years": [],
+                "total_records": 0
+            }
+
+        # 2. File size limit (15MB)
+        MAX_FILE_SIZE = 15 * 1024 * 1024
         content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            return {
+                "success": False,
+                "message": "File exceeds maximum allowed size of 15MB.",
+                "years": [],
+                "total_records": 0
+            }
         
-        # Store in a simple in-memory cache (in production, use proper storage)
-        # For now, we'll just parse and return available years
+        # Parse EPW data safely
         df = pd.read_csv(io.BytesIO(content), skiprows=8, header=None)
         
         # Rename columns based on standard EPW format
@@ -482,14 +528,13 @@ async def upload_epw(file: UploadFile = File(...)):
             21: 'WindSpeed'
         })
         
-        # Store the dataframe globally (simplified for demo)
+        # Store the dataframe globally
         global epw_data
         epw_data = df
         
-        
         unique_years = sorted(df['Year'].unique().tolist())
 
-        # Get available months for each year to display like in the streamlit app
+        # Get available months for each year
         year_month_data = {}
         month_names = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December']
@@ -499,8 +544,7 @@ async def upload_epw(file: UploadFile = File(...)):
             month_name_list = [month_names[m-1] for m in months_in_year]
             year_month_data[str(year)] = month_name_list
 
-        # Build a fully nested structure: year → month → { days, hours_by_day }
-        # Keys are strings so they serialise cleanly to JSON.
+        # Build nested structure: year → month → { days, hours_by_day }
         available_data: dict = {}
         for year in unique_years:
             year_df = df[df['Year'] == year]
@@ -525,10 +569,10 @@ async def upload_epw(file: UploadFile = File(...)):
             "available_data": available_data,
             "total_records": len(df)
         }
-    except Exception as e:
+    except Exception:
         return {
             "success": False,
-            "message": f"Error parsing EPW file: {str(e)}",
+            "message": "Failed to parse EPW file format.",
             "years": [],
             "total_records": 0
         }
@@ -581,13 +625,13 @@ async def query_epw(request: EPWDataRequest):
             message=f"Data found: Temp={temp}°C, Wind={wind_ms} m/s ({wind_mh} m/h)"
         )
         
-    except Exception as e:
+    except Exception:
         return EPWDataResponse(
             temperature=0.0,
             wind_speed_mh=0.0,
             wind_speed_ms=0.0,
-            success= False,
-            message=f"Error querying EPW data: {str(e)}"
+            success=False,
+            message="Error querying EPW data."
         )
 
 
@@ -673,10 +717,10 @@ async def query_epw_day(request: EPWDayDataRequest):
             "message": f"{len(records)} hourly records loaded.",
             "records": records
         }
-    except Exception as e:
+    except Exception:
         return {
             "success": False,
-            "message": f"Error querying EPW day data: {str(e)}",
+            "message": "Error querying EPW day data.",
             "records": []
         }
 
@@ -758,10 +802,10 @@ async def query_epw_monthly_diffuse(request: EPWMonthlyDiffuseRequest):
             avg_daily_diffuse_wh_m2=round(avg_daily_diffuse_wh_m2, 2),
             diffuse_rad_w_m2=round(diffuse_rad_w_m2, 2)
         )
-    except Exception as e:
+    except Exception:
         return EPWMonthlyDiffuseResponse(
             success=False,
-            message=f"Error querying EPW monthly diffuse radiation: {str(e)}",
+            message="Error querying EPW monthly diffuse radiation.",
             year=request.year,
             month=request.month,
             month_name="",

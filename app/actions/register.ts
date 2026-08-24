@@ -1,25 +1,46 @@
-"use server"
+"use server";
 import { redirect } from "next/navigation";
 import clientPromise from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 
 // ── Current legal document versions ─────────────────────────────────────────
-const CURRENT_TERMS_VERSION   = "1.0";
+const CURRENT_TERMS_VERSION = "1.0";
 const CURRENT_PRIVACY_VERSION = "1.0";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function registeraction(_prev: unknown, formdata: FormData) {
-  const name     = (formdata.get("reg_name")    as string)?.trim();
-  const email    = (formdata.get("reg_email")   as string)?.trim().toLowerCase();
-  const password =  formdata.get("reg_pass")    as string;
-  const confirm  =  formdata.get("reg_confirm") as string;
+  const rawName = formdata.get("reg_name");
+  const rawEmail = formdata.get("reg_email");
+  const rawPassword = formdata.get("reg_pass");
+  const rawConfirm = formdata.get("reg_confirm");
+
+  if (
+    typeof rawName !== "string" ||
+    typeof rawEmail !== "string" ||
+    typeof rawPassword !== "string" ||
+    typeof rawConfirm !== "string"
+  ) {
+    return { error: "All fields are required." };
+  }
+
+  // Strip dangerous control chars and sanitize name
+  const name = rawName.trim().replace(/[<>]/g, "");
+  const email = rawEmail.trim().toLowerCase();
+  const password = rawPassword;
+  const confirm = rawConfirm;
 
   // ── Legal acceptance ────────────────────────────────────────────────────
-  const termsAccepted   = formdata.get("terms_accepted")   === "on";
+  const termsAccepted = formdata.get("terms_accepted") === "on";
   const privacyAccepted = formdata.get("privacy_accepted") === "on";
 
   // ── Validation ──────────────────────────────────────────────────────────
   if (!name || !email || !password || !confirm) {
     return { error: "All fields are required." };
+  }
+
+  if (name.length < 2 || name.length > 100) {
+    return { error: "Name must be between 2 and 100 characters." };
   }
 
   if (!termsAccepted) {
@@ -30,25 +51,28 @@ export async function registeraction(_prev: unknown, formdata: FormData) {
     return { error: "You must accept the Privacy Policy." };
   }
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!EMAIL_REGEX.test(email) || email.length > 254) {
     return { error: "Invalid email address." };
   }
 
-  if (password.length < 6) {
-    return { error: "Password must be at least 6 characters." };
+  if (password.length < 8) {
+    return { error: "Password must be at least 8 characters long." };
+  }
+
+  if (password.length > 128) {
+    return { error: "Password cannot exceed 128 characters." };
   }
 
   if (password !== confirm) {
     return { error: "Passwords do not match." };
   }
 
-  // ── DB: check for existing user ──────────────────────────────
+  // ── DB: check for existing user (strictly parameterized) ───────────────────
   const client = await clientPromise;
   const db = client.db("nextarch");
   const users = db.collection("users");
 
-  const existing = await users.findOne({ email });
+  const existing = await users.findOne({ email: String(email) });
   if (existing) {
     return { error: "An account with this email already exists." };
   }
@@ -57,18 +81,18 @@ export async function registeraction(_prev: unknown, formdata: FormData) {
   const now = new Date();
   const hashedPassword = await bcrypt.hash(password, 12);
   await users.insertOne({
-    name,
-    email,
+    name: String(name),
+    email: String(email),
     password: hashedPassword,
     createdAt: now,
     // Terms of Conditions acceptance
-    termsAccepted:   true,
+    termsAccepted: true,
     termsAcceptedAt: now,
-    termsVersion:    CURRENT_TERMS_VERSION,
+    termsVersion: CURRENT_TERMS_VERSION,
     // Privacy Policy acceptance
-    privacyAccepted:   true,
+    privacyAccepted: true,
     privacyAcceptedAt: now,
-    privacyVersion:    CURRENT_PRIVACY_VERSION,
+    privacyVersion: CURRENT_PRIVACY_VERSION,
   });
 
   redirect("/login?registered=1");

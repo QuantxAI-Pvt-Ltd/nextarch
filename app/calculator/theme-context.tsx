@@ -1,5 +1,5 @@
-"use client"
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+"use client";
+import { createContext, useContext, ReactNode } from "react";
 import { useGlobalTheme } from "@/components/global-theme-context";
 
 type Theme = "dark" | "light";
@@ -16,15 +16,10 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const { isDark: globalIsDark, toggleTheme: globalToggle } = useGlobalTheme();
-    const [theme, setTheme] = useState<Theme>(globalIsDark ? "dark" : "light");
-
-    // Sync local state from global on mount and whenever global changes
-    useEffect(() => {
-        setTheme(globalIsDark ? "dark" : "light");
-    }, [globalIsDark]);
+    const theme: Theme = globalIsDark ? "dark" : "light";
 
     const toggleTheme = () => {
-        globalToggle(); // drives both global footer and local state (via useEffect above)
+        globalToggle();
     };
 
     return (

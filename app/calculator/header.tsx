@@ -31,10 +31,15 @@ export function Header() {
 
     // Fetch subscription / trial status
     useEffect(() => {
-        fetch("/api/usage")
+        const controller = new AbortController();
+        fetch("/api/usage", { signal: controller.signal })
             .then((r) => r.ok ? r.json() : null)
             .then((data) => data && setUsage(data))
             .catch(() => null);
+
+        return () => {
+            controller.abort();
+        };
     }, []);
 
     // Close dropdowns when clicking outside

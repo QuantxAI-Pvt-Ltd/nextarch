@@ -63,9 +63,8 @@ export default function Volumeofairheatgain() {
 
             const data = await response.json();
             setResult(data);
-        } catch (error) {
-            console.error('Error calculating:', error);
-            alert('Error calculating...');
+        } catch {
+            alert('Unable to complete calculation. Please verify your inputs and backend connection.');
         } finally {
             setLoading(false);
         }
