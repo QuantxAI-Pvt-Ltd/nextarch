@@ -382,12 +382,83 @@ class EPWDataRequest(BaseModel):
     hour: int = Field(..., description="Hour (1-24)")
 
 
+
 class EPWDataResponse(BaseModel):
     temperature: float = Field(..., description="Dry bulb temperature (°C)")
     wind_speed_mh: float = Field(..., description="Wind speed (m/h)")
     wind_speed_ms: float = Field(..., description="Wind speed (m/s)")
     success: bool = Field(..., description="Whether data was found")
     message: str = Field(..., description="Status message")
+
+
+class EPWDayRequest(BaseModel):
+    year: int = Field(..., description="Year from EPW file")
+    month: int = Field(..., description="Month (1-12)")
+    day: int = Field(..., description="Day (1-31)")
+
+
+class EPWHourRow(BaseModel):
+    hour: int = Field(..., description="Hour (1-24)")
+    temperature: float = Field(..., description="Dry bulb temperature (°C)")
+    wind_speed_ms: float = Field(..., description="Wind speed (m/s)")
+    wind_speed_mh: float = Field(..., description="Wind speed (m/h)")
+
+
+class EPWDayResponse(BaseModel):
+    success: bool
+    message: str
+    rows: List[EPWHourRow]
+
+
+@app.post("/api/epw-day", response_model=EPWDayResponse)
+async def get_epw_day(request: EPWDayRequest):
+    """Return all hourly rows for a given year/month/day from the uploaded EPW file."""
+    try:
+        global epw_data
+
+        if epw_data is None:
+            return EPWDayResponse(
+                success=False,
+                message="No EPW file uploaded. Please upload an EPW file first.",
+                rows=[]
+            )
+
+        mask = (
+            (epw_data['Year'] == request.year) &
+            (epw_data['Month'] == request.month) &
+            (epw_data['Day'] == request.day)
+        )
+        day_df = epw_data[mask].sort_values('Hour')
+
+        if day_df.empty:
+            return EPWDayResponse(
+                success=False,
+                message=f"No data found for {request.year}-{request.month:02d}-{request.day:02d}",
+                rows=[]
+            )
+
+        rows = []
+        for _, row in day_df.iterrows():
+            wind_ms = float(row['WindSpeed'])
+            rows.append(EPWHourRow(
+                hour=int(row['Hour']),
+                temperature=round(float(row['DryBulbTemp']), 2),
+                wind_speed_ms=round(wind_ms, 2),
+                wind_speed_mh=round(wind_ms * 3600.0, 0),
+            ))
+
+        return EPWDayResponse(
+            success=True,
+            message=f"Found {len(rows)} hourly records for {request.year}-{request.month:02d}-{request.day:02d}",
+            rows=rows
+        )
+
+    except Exception as e:
+        return EPWDayResponse(
+            success=False,
+            message=f"Error fetching day data: {str(e)}",
+            rows=[]
+        )
 
 
 @app.post("/api/upload-epw")
@@ -405,6 +476,9 @@ async def upload_epw(file: UploadFile = File(...)):
         df = df.rename(columns={
             0: 'Year', 1: 'Month', 2: 'Day', 3: 'Hour', 4: 'Minute',
             6: 'DryBulbTemp',
+            13: 'GlobalHorizontalRadiation',
+            14: 'DirectNormalRadiation',
+            15: 'DiffuseHorizontalRadiation',
             21: 'WindSpeed'
         })
         
