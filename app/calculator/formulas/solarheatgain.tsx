@@ -65,8 +65,6 @@ export default function SolarHeatGain() {
     const titleColor = isDark ? "#ffffff" : "#1e293b";
     const subtitleColor = isDark ? "#9ca3af" : "#64748b";
     const labelColor = isDark ? "#6b7280" : "#94a3b8";
-    const cardBg = isDark ? "#131B2C" : "#ffffff";
-    const cardBorder = isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0";
     const previewBg = isDark ? "#0f1623" : "#f8fafc";
     const previewBorder = isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0";
     const rowBg = isDark ? "#0B1121" : "#f8fafc";
@@ -74,8 +72,6 @@ export default function SolarHeatGain() {
     const dividerColor = isDark ? "rgba(255,255,255,0.05)" : "#e2e8f0";
     const numberBubbleBg = isDark ? "#131B2C" : "#f1f5f9";
     const numberBubbleBorder = isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0";
-    const stepBg = isDark ? "#131B2C" : "#f1f5f9";
-    const stepBorder = isDark ? "1px solid rgba(255,255,255,0.05)" : "1px solid #e2e8f0";
 
     return (
         <div className="space-y-6">
@@ -83,18 +79,18 @@ export default function SolarHeatGain() {
                 <div>
                     <h1 className="text-3xl font-bold mb-2" style={{ color: titleColor }}>Equivalent Solar Heat Gain</h1>
                     <p className="max-w-2xl" style={{ color: subtitleColor }}>
-                        Calculates the total heat gain through glazing considering shading and solar irradiation for multiple window types.
+                        Calculates total heat gain through glazing considering shading and monthly average daily diffuse solar radiation for multiple window types.
                     </p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                 <div className="lg:col-span-8 space-y-6">
-                    {/* Interactive EPW Weather Viewer for Solar Radiation */}
+                    {/* Interactive EPW Weather Viewer for Monthly Diffuse Solar Radiation */}
                     <EpwViewer
-                        showRadiation={true}
-                        onSelectHour={(data) => {
-                            const rad = data.radiation;
+                        mode="monthly-diffuse"
+                        onSelectMonthlyDiffuse={(data) => {
+                            const rad = data.diffuse_rad_w_m2;
                             setElements(prev => prev.map(el => ({ ...el, radiation: rad })));
                         }}
                     />
@@ -106,7 +102,7 @@ export default function SolarHeatGain() {
                                 onClick={handleAddElement}
                                 variant="outline"
                                 size="sm"
-                                className="bg-[#1A73E8]/10  text-[#1A73E8] border border-[#1A73E8]/20"
+                                className="bg-[#1A73E8]/10 text-[#1A73E8] border border-[#1A73E8]/20"
                             >
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Window Type
@@ -197,10 +193,11 @@ export default function SolarHeatGain() {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: labelColor }}>
-                                            Rad (W/m²)
+                                            Diffuse Rad (W/m²)
                                         </label>
                                         <input
                                             type="number"
+                                            step="0.01"
                                             value={element.radiation || ''}
                                             onChange={(e) => handleElementChange(index, "radiation", e.target.value)}
                                             className="w-full bg-transparent border-0 border-b-2 border-transparent hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors"
@@ -235,11 +232,11 @@ export default function SolarHeatGain() {
                                 const val = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0);
                                 return `${index + 1}\\text{)} \\quad Q_{${index + 1}} &= ${e.area || 0} \\times ${e.shgc || 0} \\times ${e.pf || 0} \\times ${e.radiation || 0} = ${val === 0 ? '\\text{---}' : val.toFixed(3)} \\; \\text{W} \\\\[6pt]`;
                             }).join('')}
-                                Q_{\\text{total}} &= ${elements.map((e, i) => {
+                                Q_{\\text{total}} &= ${elements.map((e) => {
                                 const val = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0);
                                 return `(${val === 0 ? '\\text{---}' : val.toFixed(3)} \\times ${e.qa || 0})`;
                             }).join(' + ')} \\\\
-                                Q_{\\text{total}} &= ${elements.map((e, i) => {
+                                Q_{\\text{total}} &= ${elements.map((e) => {
                                 const totalVal = (e.area || 0) * (e.shgc || 0) * (e.pf || 0) * (e.radiation || 0) * (e.qa || 0);
                                 return totalVal === 0 ? '\\text{---}' : totalVal.toFixed(3);
                             }).join(' + ')} \\\\

@@ -681,7 +681,98 @@ async def query_epw_day(request: EPWDayDataRequest):
         }
 
 
+class EPWMonthlyDiffuseRequest(BaseModel):
+    year: int = Field(..., description="Year")
+    month: int = Field(..., description="Month (1-12)")
+
+
+class EPWMonthlyDiffuseResponse(BaseModel):
+    success: bool
+    message: str
+    year: int
+    month: int
+    month_name: str
+    days_count: int
+    avg_daily_diffuse_wh_m2: float
+    diffuse_rad_w_m2: float
+
+
+@app.post("/api/query-epw-monthly-diffuse", response_model=EPWMonthlyDiffuseResponse)
+async def query_epw_monthly_diffuse(request: EPWMonthlyDiffuseRequest):
+    """Query monthly average daily diffuse radiation and convert Wh/m² to W/m² (divided by 24)"""
+    try:
+        global epw_data
+        
+        if epw_data is None:
+            return EPWMonthlyDiffuseResponse(
+                success=False,
+                message="No EPW file uploaded. Please upload an EPW file first.",
+                year=request.year,
+                month=request.month,
+                month_name="",
+                days_count=0,
+                avg_daily_diffuse_wh_m2=0.0,
+                diffuse_rad_w_m2=0.0
+            )
+        
+        mask = (
+            (epw_data['Year'] == request.year) &
+            (epw_data['Month'] == request.month)
+        )
+        
+        month_rows = epw_data[mask]
+        
+        if month_rows.empty:
+            return EPWMonthlyDiffuseResponse(
+                success=False,
+                message=f"No data found for Year {request.year}, Month {request.month}",
+                year=request.year,
+                month=request.month,
+                month_name="",
+                days_count=0,
+                avg_daily_diffuse_wh_m2=0.0,
+                diffuse_rad_w_m2=0.0
+            )
+        
+        month_names = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ]
+        month_name = month_names[request.month - 1] if 1 <= request.month <= 12 else str(request.month)
+        
+        # Calculate daily sum of DiffuseHorizontalRadiation (each row is hourly Wh/m²)
+        daily_sums = month_rows.groupby('Day')['DiffuseHorizontalRadiation'].sum()
+        days_count = int(len(daily_sums))
+        avg_daily_diffuse_wh_m2 = float(daily_sums.mean()) if days_count > 0 else 0.0
+        
+        # Convert Wh/sq.m to W/m² by dividing daily average by 24
+        diffuse_rad_w_m2 = avg_daily_diffuse_wh_m2 / 24.0
+        
+        return EPWMonthlyDiffuseResponse(
+            success=True,
+            message=f"Monthly diffuse radiation for {month_name} {request.year} calculated successfully.",
+            year=request.year,
+            month=request.month,
+            month_name=month_name,
+            days_count=days_count,
+            avg_daily_diffuse_wh_m2=round(avg_daily_diffuse_wh_m2, 2),
+            diffuse_rad_w_m2=round(diffuse_rad_w_m2, 2)
+        )
+    except Exception as e:
+        return EPWMonthlyDiffuseResponse(
+            success=False,
+            message=f"Error querying EPW monthly diffuse radiation: {str(e)}",
+            year=request.year,
+            month=request.month,
+            month_name="",
+            days_count=0,
+            avg_daily_diffuse_wh_m2=0.0,
+            diffuse_rad_w_m2=0.0
+        )
+
+
 # Initialize global EPW data storage
 epw_data = None
+
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Wind, Upload, CheckCircle2, RefreshCw, X, Sun, Moon, Info } from "lucide-react";
+import { Wind, Upload, CheckCircle2, RefreshCw, X, Sun, Moon, Info, SunMedium } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "./theme-context";
@@ -23,6 +23,26 @@ export interface EPWHourlyData {
     diffuse_horizontal_radiation: number;
 }
 
+export interface EPWMonthlyDiffuseData {
+    year: number;
+    month: number;
+    month_name: string;
+    days_count: number;
+    avg_daily_diffuse_wh_m2: number;
+    diffuse_rad_w_m2: number;
+}
+
+interface EPWMonthlyDiffuseResponse {
+    success: boolean;
+    message: string;
+    year: number;
+    month: number;
+    month_name: string;
+    days_count: number;
+    avg_daily_diffuse_wh_m2: number;
+    diffuse_rad_w_m2: number;
+}
+
 interface AvailableMonthData {
     days: number[];
     hours_by_day: Record<string, number[]>;
@@ -31,13 +51,17 @@ interface AvailableMonthData {
 type AvailableData = Record<string, Record<string, AvailableMonthData>>;
 
 interface EpwViewerProps {
+    mode?: "hourly" | "monthly-diffuse";
     onSelectHour?: (data: EPWHourlyData) => void;
+    onSelectMonthlyDiffuse?: (data: EPWMonthlyDiffuseData) => void;
     showRadiation?: boolean;
     initialSelectedHour?: number;
 }
 
 export default function EpwViewer({
+    mode = "hourly",
     onSelectHour,
+    onSelectMonthlyDiffuse,
     showRadiation = false,
     initialSelectedHour = 1,
 }: EpwViewerProps) {
@@ -60,6 +84,7 @@ export default function EpwViewer({
     const [timePeriod, setTimePeriod] = useState<"AM" | "PM">("AM");
 
     const [dayRecords, setDayRecords] = useState<EPWHourlyData[]>([]);
+    const [monthlyDiffuseData, setMonthlyDiffuseData] = useState<EPWMonthlyDiffuseData | null>(null);
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
 
@@ -150,9 +175,9 @@ export default function EpwViewer({
         }
     };
 
-    // Query 24-hour day records
+    // Query 24-hour day records (for "hourly" mode)
     useEffect(() => {
-        if (!fileUploaded) return;
+        if (!fileUploaded || mode !== "hourly") return;
 
         let active = true;
         const fetchDayData = async () => {
@@ -186,9 +211,54 @@ export default function EpwViewer({
         return () => {
             active = false;
         };
-    }, [fileUploaded, selectedDate.year, selectedDate.month, selectedDate.day]);
+    }, [fileUploaded, mode, selectedDate.year, selectedDate.month, selectedDate.day]);
 
-    // Handle row click
+    // Query monthly diffuse radiation (for "monthly-diffuse" mode)
+    useEffect(() => {
+        if (!fileUploaded || mode !== "monthly-diffuse") return;
+
+        let active = true;
+        const fetchMonthlyDiffuseData = async () => {
+            setLoading(true);
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const response = await fetch(`${apiUrl}/api/query-epw-monthly-diffuse`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        year: selectedDate.year,
+                        month: selectedDate.month
+                    }),
+                });
+                const data: EPWMonthlyDiffuseResponse = await response.json();
+                if (active && data.success) {
+                    const diffuseResult: EPWMonthlyDiffuseData = {
+                        year: data.year,
+                        month: data.month,
+                        month_name: data.month_name,
+                        days_count: data.days_count,
+                        avg_daily_diffuse_wh_m2: data.avg_daily_diffuse_wh_m2,
+                        diffuse_rad_w_m2: data.diffuse_rad_w_m2,
+                    };
+                    setMonthlyDiffuseData(diffuseResult);
+                    if (onSelectMonthlyDiffuse) {
+                        onSelectMonthlyDiffuse(diffuseResult);
+                    }
+                }
+            } catch (err) {
+                console.error("Monthly diffuse query error:", err);
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+
+        fetchMonthlyDiffuseData();
+        return () => {
+            active = false;
+        };
+    }, [fileUploaded, mode, selectedDate.year, selectedDate.month]);
+
+    // Handle row click (hourly mode)
     const handleSelectRow = (record: EPWHourlyData) => {
         setSelectedHour(record.hour);
         if (onSelectHour) {
@@ -217,6 +287,8 @@ export default function EpwViewer({
     const tableHeaderBg = isDark ? "rgba(255,255,255,0.02)" : "#f8fafc";
     const tableBorderColor = isDark ? "rgba(255,255,255,0.05)" : "#f1f5f9";
     const tabContainerBg = isDark ? "#0B1121" : "#f1f5f9";
+    const statCardBg = isDark ? "#0B1121" : "#f8fafc";
+    const statCardBorder = isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid #e2e8f0";
 
     return (
         <div className="rounded-2xl p-6 relative overflow-hidden transition-all shadow-sm" style={{ background: cardBg, border: cardBorder }}>
@@ -232,11 +304,24 @@ export default function EpwViewer({
             {/* Header */}
             <div className="flex items-center gap-3 mb-6">
                 <div className="bg-[#1A73E8]/10 p-2.5 rounded-xl flex items-center justify-center">
-                    <Wind className="text-[#1A73E8] h-5 w-5" />
+                    {mode === "monthly-diffuse" ? (
+                        <SunMedium className="text-[#1A73E8] h-5 w-5" />
+                    ) : (
+                        <Wind className="text-[#1A73E8] h-5 w-5" />
+                    )}
                 </div>
-                <h4 className="font-semibold text-lg" style={{ color: titleColor }}>
-                    Auto-fill from Weather Data (EPW)
-                </h4>
+                <div>
+                    <h4 className="font-semibold text-lg" style={{ color: titleColor }}>
+                        {mode === "monthly-diffuse"
+                            ? "Auto-fill Diffuse Radiation from Weather Data (EPW)"
+                            : "Auto-fill from Weather Data (EPW)"}
+                    </h4>
+                    {mode === "monthly-diffuse" && (
+                        <p className="text-xs" style={{ color: subtitleColor }}>
+                            Monthly average daily diffuse solar radiation converted to W/m² (Wh/m² ÷ 24 hrs)
+                        </p>
+                    )}
+                </div>
             </div>
 
             {!fileUploaded ? (
@@ -280,7 +365,7 @@ export default function EpwViewer({
                                     {fileName || "EPW Weather File"}
                                 </p>
                                 <p className="text-xs" style={{ color: subtitleColor }}>
-                                    EPW file uploaded successfully · {totalRecords} hourly records loaded.
+                                    EPW file loaded · {totalRecords} hourly records available.
                                 </p>
                             </div>
                         </div>
@@ -299,6 +384,7 @@ export default function EpwViewer({
                                 onClick={() => {
                                     setFileUploaded(false);
                                     setDayRecords([]);
+                                    setMonthlyDiffuseData(null);
                                 }}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-500/10 transition-colors"
                             >
@@ -308,7 +394,7 @@ export default function EpwViewer({
                     </div>
 
                     {/* Date Dropdowns */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className={`grid gap-3 ${mode === "monthly-diffuse" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-3"}`}>
                         {/* Year */}
                         <div className="space-y-1.5">
                             <Label className="text-xs font-medium" style={{ color: labelColor }}>Year</Label>
@@ -353,133 +439,202 @@ export default function EpwViewer({
                             </div>
                         </div>
 
-                        {/* Day */}
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-medium" style={{ color: labelColor }}>Day</Label>
-                            <div className="relative">
-                                <select
-                                    className="w-full rounded-xl text-sm px-3.5 py-2.5 outline-none appearance-none pr-8 transition-colors cursor-pointer"
-                                    style={{ background: selectBg, border: cardBorder, color: titleColor }}
-                                    value={selectedDate.day}
-                                    onChange={(e) => handleDayChange(Number(e.target.value))}
-                                >
-                                    {availableDays.map(d => (
-                                        <option key={d} value={d} style={{ background: selectBg, color: titleColor }}>
-                                            {d}
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: labelColor }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        {/* Day (Only for hourly mode) */}
+                        {mode === "hourly" && (
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-medium" style={{ color: labelColor }}>Day</Label>
+                                <div className="relative">
+                                    <select
+                                        className="w-full rounded-xl text-sm px-3.5 py-2.5 outline-none appearance-none pr-8 transition-colors cursor-pointer"
+                                        style={{ background: selectBg, border: cardBorder, color: titleColor }}
+                                        value={selectedDate.day}
+                                        onChange={(e) => handleDayChange(Number(e.target.value))}
+                                    >
+                                        {availableDays.map(d => (
+                                            <option key={d} value={d} style={{ background: selectBg, color: titleColor }}>
+                                                {d}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: labelColor }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </div>
                                 </div>
                             </div>
+                        )}
+                    </div>
+
+                    {/* Mode Specific Body */}
+                    {mode === "monthly-diffuse" ? (
+                        /* Monthly Diffuse Radiation Display */
+                        <div className="space-y-4 pt-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Converted Radiation (W/m²) */}
+                                <div
+                                    className="p-4 rounded-2xl relative overflow-hidden transition-all flex flex-col justify-between border"
+                                    style={{ background: statCardBg, borderColor: isDark ? "rgba(26, 115, 232, 0.3)" : "#bfdbfe" }}
+                                >
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs uppercase font-semibold text-[#1A73E8]">
+                                                Calculated Diffuse Radiation
+                                            </span>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1A73E8]/10 text-[#1A73E8] font-semibold">
+                                                Auto-applied
+                                            </span>
+                                        </div>
+                                        <div className="text-3xl font-bold font-mono my-2 text-[#1A73E8]">
+                                            {loading ? "..." : (monthlyDiffuseData ? `${monthlyDiffuseData.diffuse_rad_w_m2.toFixed(2)}` : "---")}
+                                            <span className="text-sm font-sans font-normal ml-1.5" style={{ color: subtitleColor }}>W/m²</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs font-mono" style={{ color: subtitleColor }}>
+                                        = Daily Avg ({monthlyDiffuseData?.avg_daily_diffuse_wh_m2.toFixed(1) ?? "0"} Wh/m²) ÷ 24 hrs
+                                    </p>
+                                </div>
+
+                                {/* Monthly Average Daily Wh/m² */}
+                                <div
+                                    className="p-4 rounded-2xl relative overflow-hidden transition-all flex flex-col justify-between"
+                                    style={{ background: statCardBg, border: statCardBorder }}
+                                >
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs uppercase font-semibold" style={{ color: labelColor }}>
+                                                Monthly Avg Daily Diffuse
+                                            </span>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-semibold">
+                                                {monthlyDiffuseData?.days_count ?? 0} Days
+                                            </span>
+                                        </div>
+                                        <div className="text-2xl font-bold font-mono my-2" style={{ color: titleColor }}>
+                                            {loading ? "..." : (monthlyDiffuseData ? `${monthlyDiffuseData.avg_daily_diffuse_wh_m2.toFixed(2)}` : "---")}
+                                            <span className="text-sm font-sans font-normal ml-1.5" style={{ color: subtitleColor }}>Wh/m²</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs" style={{ color: subtitleColor }}>
+                                        {MONTH_NAMES[selectedDate.month - 1]} {selectedDate.year} average daily solar total
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Bottom Indicator */}
+                            <div className="flex items-center gap-2 text-xs pt-1" style={{ color: subtitleColor }}>
+                                <Info className="w-4 h-4 text-[#1A73E8] shrink-0" />
+                                <span>
+                                    Showing diffuse radiation for {MONTH_NAMES[selectedDate.month - 1]} {selectedDate.year}. Values automatically update the window profiles below.
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        /* Hourly Mode (AM/PM & Table) */
+                        <>
+                            {/* AM / PM Segmented Control */}
+                            <div
+                                className="p-1 rounded-2xl flex items-center gap-1 border"
+                                style={{ background: tabContainerBg, borderColor: isDark ? "rgba(255,255,255,0.05)" : "#e2e8f0" }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => setTimePeriod("AM")}
+                                    className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${timePeriod === "AM"
+                                            ? "bg-[#1A73E8] text-white shadow-sm"
+                                            : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
+                                        }`}
+                                >
+                                    <Sun className="w-4 h-4" />
+                                    <span>AM</span>
+                                    <span className={`text-[11px] font-normal ${timePeriod === "AM" ? "text-white/80" : "text-gray-400"}`}>1 – 12</span>
+                                </button>
 
-                    {/* AM / PM Segmented Control */}
-                    <div
-                        className="p-1 rounded-2xl flex items-center gap-1 border"
-                        style={{ background: tabContainerBg, borderColor: isDark ? "rgba(255,255,255,0.05)" : "#e2e8f0" }}
-                    >
-                        <button
-                            type="button"
-                            onClick={() => setTimePeriod("AM")}
-                            className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${timePeriod === "AM"
-                                    ? "bg-[#1A73E8] text-white shadow-sm"
-                                    : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
-                                }`}
-                        >
-                            <Sun className="w-4 h-4" />
-                            <span>AM</span>
-                            <span className={`text-[11px] font-normal ${timePeriod === "AM" ? "text-white/80" : "text-gray-400"}`}>1 – 12</span>
-                        </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setTimePeriod("PM")}
+                                    className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${timePeriod === "PM"
+                                            ? "bg-[#1A73E8] text-white shadow-sm"
+                                            : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
+                                        }`}
+                                >
+                                    <Moon className="w-4 h-4" />
+                                    <span>PM</span>
+                                    <span className={`text-[11px] font-normal ${timePeriod === "PM" ? "text-white/80" : "text-gray-400"}`}>13 – 24</span>
+                                </button>
+                            </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setTimePeriod("PM")}
-                            className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${timePeriod === "PM"
-                                    ? "bg-[#1A73E8] text-white shadow-sm"
-                                    : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
-                                }`}
-                        >
-                            <Moon className="w-4 h-4" />
-                            <span>PM</span>
-                            <span className={`text-[11px] font-normal ${timePeriod === "PM" ? "text-white/80" : "text-gray-400"}`}>13 – 24</span>
-                        </button>
-                    </div>
-
-                    {/* Hourly Records Table */}
-                    <div
-                        className="rounded-2xl border overflow-hidden"
-                        style={{ borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0" }}
-                    >
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead>
-                                    <tr
-                                        className="border-b text-[11px] uppercase tracking-wider font-bold"
-                                        style={{ background: tableHeaderBg, borderColor: tableBorderColor, color: subtitleColor }}
-                                    >
-                                        <th className="py-3 px-4">TIME</th>
-                                        <th className="py-3 px-4 text-right">TEMP (°C)</th>
-                                        <th className="py-3 px-4 text-right">WIND (M/S)</th>
-                                        <th className="py-3 px-4 text-right">WIND (M/H)</th>
-                                        {showRadiation && (
-                                            <th className="py-3 px-4 text-right">RAD (W/M²)</th>
-                                        )}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {displayedRecords.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={showRadiation ? 5 : 4} className="py-6 text-center text-xs" style={{ color: subtitleColor }}>
-                                                {loading ? "Loading weather data..." : "No records found for this date."}
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        displayedRecords.map((r) => {
-                                            const isSelected = selectedHour === r.hour;
-                                            return (
-                                                <tr
-                                                    key={r.hour}
-                                                    onClick={() => handleSelectRow(r)}
-                                                    className={`border-b cursor-pointer transition-all ${isSelected
-                                                            ? "bg-[#1A73E8]/15 font-semibold"
-                                                            : "hover:bg-[#1A73E8]/5"
-                                                        }`}
-                                                    style={{ borderColor: tableBorderColor }}
-                                                >
-                                                    <td className="py-3 px-4 font-semibold" style={{ color: isSelected ? "#1A73E8" : titleColor }}>
-                                                        {r.time_label}
+                            {/* Hourly Records Table */}
+                            <div
+                                className="rounded-2xl border overflow-hidden"
+                                style={{ borderColor: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0" }}
+                            >
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead>
+                                            <tr
+                                                className="border-b text-[11px] uppercase tracking-wider font-bold"
+                                                style={{ background: tableHeaderBg, borderColor: tableBorderColor, color: subtitleColor }}
+                                            >
+                                                <th className="py-3 px-4">TIME</th>
+                                                <th className="py-3 px-4 text-right">TEMP (°C)</th>
+                                                <th className="py-3 px-4 text-right">WIND (M/S)</th>
+                                                <th className="py-3 px-4 text-right">WIND (M/H)</th>
+                                                {showRadiation && (
+                                                    <th className="py-3 px-4 text-right">RAD (W/M²)</th>
+                                                )}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {displayedRecords.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={showRadiation ? 5 : 4} className="py-6 text-center text-xs" style={{ color: subtitleColor }}>
+                                                        {loading ? "Loading weather data..." : "No records found for this date."}
                                                     </td>
-                                                    <td className="py-3 px-4 text-right font-mono" style={{ color: titleColor }}>
-                                                        {r.temperature.toFixed(1)}
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right font-mono" style={{ color: titleColor }}>
-                                                        {r.wind_speed_ms.toFixed(2)}
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right font-mono" style={{ color: titleColor }}>
-                                                        {Math.round(r.wind_speed_mh)}
-                                                    </td>
-                                                    {showRadiation && (
-                                                        <td className="py-3 px-4 text-right font-mono text-[#1A73E8]" style={{ color: titleColor }}>
-                                                            {r.radiation.toFixed(1)}
-                                                        </td>
-                                                    )}
                                                 </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                                            ) : (
+                                                displayedRecords.map((r) => {
+                                                    const isSelected = selectedHour === r.hour;
+                                                    return (
+                                                        <tr
+                                                            key={r.hour}
+                                                            onClick={() => handleSelectRow(r)}
+                                                            className={`border-b cursor-pointer transition-all ${isSelected
+                                                                    ? "bg-[#1A73E8]/15 font-semibold"
+                                                                    : "hover:bg-[#1A73E8]/5"
+                                                                }`}
+                                                            style={{ borderColor: tableBorderColor }}
+                                                        >
+                                                            <td className="py-3 px-4 font-semibold" style={{ color: isSelected ? "#1A73E8" : titleColor }}>
+                                                                {r.time_label}
+                                                            </td>
+                                                            <td className="py-3 px-4 text-right font-mono" style={{ color: titleColor }}>
+                                                                {r.temperature.toFixed(1)}
+                                                            </td>
+                                                            <td className="py-3 px-4 text-right font-mono" style={{ color: titleColor }}>
+                                                                {r.wind_speed_ms.toFixed(2)}
+                                                            </td>
+                                                            <td className="py-3 px-4 text-right font-mono" style={{ color: titleColor }}>
+                                                                {Math.round(r.wind_speed_mh)}
+                                                            </td>
+                                                            {showRadiation && (
+                                                                <td className="py-3 px-4 text-right font-mono text-[#1A73E8]" style={{ color: titleColor }}>
+                                                                    {r.radiation.toFixed(1)}
+                                                                </td>
+                                                            )}
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
 
-                    {/* Bottom Indicator */}
-                    <div className="flex items-center gap-2 text-xs pt-1" style={{ color: subtitleColor }}>
-                        <Info className="w-4 h-4 text-[#1A73E8] shrink-0" />
-                        <span>Click on any hour to select and auto-fill calculations. {totalRecords} hourly records loaded.</span>
-                    </div>
+                            {/* Bottom Indicator */}
+                            <div className="flex items-center gap-2 text-xs pt-1" style={{ color: subtitleColor }}>
+                                <Info className="w-4 h-4 text-[#1A73E8] shrink-0" />
+                                <span>Click on any hour to select and auto-fill calculations. {totalRecords} hourly records loaded.</span>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </div>
