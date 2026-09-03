@@ -107,13 +107,20 @@ export default function Windowcalculations() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <MetricCard label="Flow Coefficient (K)" value={K} unit="" name="K" step={0.05} onChange={handleChange} />
-                        <MetricCard label="Wind Speed (V)" value={V} unit="m/h" name="V" onChange={handleChange} />
+                        <MetricCard
+                            label="Wind Speed (V)"
+                            value={V}
+                            unit="m/h"
+                            name="V"
+                            onChange={handleChange}
+                            subLabel={V > 0 ? `≈ ${(V / 3600).toFixed(2)} m/s (from EPW or manual)` : "From EPW or manual"}
+                        />
                     </div>
 
                     {/* Interactive EPW Weather Viewer */}
                     <EpwViewer
                         onSelectHour={(data) => {
-                            setValues(prev => ({ ...prev, V: data.wind_speed_mh }));
+                            setValues(prev => ({ ...prev, V: Math.round(data.wind_speed_mh) }));
                         }}
                     />
 
@@ -222,6 +229,13 @@ export default function Windowcalculations() {
                                 <div>
                                     <p className="text-xs" style={{ color: labelColor }}>Outlet Area (Aₒ)</p>
                                     <p className="text-xl font-bold" style={{ color: titleColor }}>{result.Ao.toFixed(3)} <span className="text-sm font-normal" style={{ color: subtitleColor }}>m²</span></p>
+                                </div>
+                                <div className="w-full h-px" style={{ background: dividerColor }} />
+                                <div>
+                                    <p className="text-xs" style={{ color: labelColor }}>Wind Speed (V)</p>
+                                    <p className="text-xl font-bold" style={{ color: titleColor }}>
+                                        {V} <span className="text-sm font-normal" style={{ color: subtitleColor }}>m/h ({((V || 0) / 3600).toFixed(2)} m/s)</span>
+                                    </p>
                                 </div>
                             </div>
                         </div>

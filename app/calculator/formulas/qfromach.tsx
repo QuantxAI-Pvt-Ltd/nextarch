@@ -22,8 +22,9 @@ export default function Qfromach() {
         V: 0,
         rho: 1.2,
         Cp: 1005.0,
-        delta_T: 0,
         t_i: 25,
+        t_o: 20,
+        delta_T: 5,
     });
     const [result, setResult] = useState<ResultData | null>(null);
     const [loading, setLoading] = useState(false);
@@ -32,10 +33,17 @@ export default function Qfromach() {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const parsed = parseFloat(value);
-        setValues((prev) => ({ ...prev, [name]: isNaN(parsed) ? 0 : Math.abs(parsed) }));
+        const val = isNaN(parsed) ? 0 : Math.abs(parsed);
+        setValues((prev) => {
+            const next = { ...prev, [name]: val };
+            if (name === "t_i" || name === "t_o") {
+                next.delta_T = parseFloat(Math.abs(next.t_i - next.t_o).toFixed(2));
+            }
+            return next;
+        });
     };
 
-    const { ACH, V, rho, Cp, delta_T, t_i } = values;
+    const { ACH, V, rho, Cp, delta_T, t_i, t_o } = values;
 
     // ── API calculate ─────────────────────────────────────────────────────────
     const handleCalculate = async () => {
@@ -45,7 +53,7 @@ export default function Qfromach() {
             const response = await fetch(`${apiUrl}/api/q-from-ach`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ACH, V, rho, Cp, delta_T }),
+                body: JSON.stringify({ ACH, V, rho, Cp, delta_T, t_i, t_o }),
             });
             if (!response.ok) throw new Error("API request failed");
             const data = await response.json();
@@ -81,21 +89,25 @@ export default function Qfromach() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                 <div className="lg:col-span-8 space-y-6">
                     {/* Input cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <MetricCard label="Air Changes (ACH)" value={ACH} unit="h⁻¹" name="ACH" onChange={handleChange} />
                         <MetricCard label="Room Volume (V)" value={V} unit="m³" name="V" onChange={handleChange} />
                         <MetricCard label="Air Density (ρ)" value={rho} unit="kg/m³" name="rho" step={0.01} onChange={handleChange} />
                         <MetricCard label="Specific Heat (Cp)" value={Cp} unit="J/kg·K" name="Cp" onChange={handleChange} />
                         <MetricCard label="Indoor Temp (ti)" value={t_i} unit="°C" name="t_i" onChange={handleChange} />
-                        <MetricCard label="Temp. Diff (ΔT)" value={delta_T} unit="K" name="delta_T" onChange={handleChange} />
+                        <MetricCard label="Outdoor Temp (to)" value={t_o} unit="°C" name="t_o" onChange={handleChange} subLabel="Manual or from EPW" />
+                        <MetricCard label="Temp. Diff (ΔT)" value={delta_T} unit="K" subLabel="|ti - to| (View only)" />
                     </div>
 
                     {/* ── Interactive EPW Weather Viewer ──────────────────────── */}
                     <EpwViewer
                         onSelectHour={(data) => {
-                            const t_o = data.temperature;
-                            const newDeltaT = parseFloat(Math.abs(t_i - t_o).toFixed(2));
-                            setValues(prev => ({ ...prev, delta_T: newDeltaT }));
+                            const outdoorTemp = data.temperature;
+                            setValues(prev => ({
+                                ...prev,
+                                t_o: outdoorTemp,
+                                delta_T: parseFloat(Math.abs(prev.t_i - outdoorTemp).toFixed(2)),
+                            }));
                         }}
                     />
 
@@ -117,6 +129,7 @@ export default function Qfromach() {
                         <ArrowLeft className="absolute top-4 right-4 md:top-6 md:right-6 h-5 w-5" style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#cbd5e1" }} />
                         <div className="text-xs sm:text-base md:text-xl flex justify-start md:justify-center py-3 md:py-8 mb-2 md:mb-8 w-full overflow-x-auto px-2 md:px-0" style={{ color: titleColor }}>
                             <BlockMath math={`\\begin{align*}
+                                \\Delta T &= |t_i - t_o| = |${t_i || 0} - ${t_o || 0}| = ${delta_T || 0} \\; \\text{K} \\\\[6pt]
                                 Q &= \\frac{ACH \\times V \\times \\rho \\times C_p \\times \\Delta T}{3600} \\\\[6pt]
                                 Q &= \\frac{${ACH || 0} \\times ${V || 0} \\times ${rho || 1.2} \\times ${Cp || 1005} \\times ${delta_T || 0}}{3600} \\\\[6pt]
                                 Q &= ${((ACH || 0) * (V || 0) * (delta_T || 0)) === 0 ? '\\text{---}' : '\\mathbf{' + ((ACH * V * rho * Cp * delta_T) / 3600).toFixed(2) + '}'} \\; \\text{W}
@@ -147,14 +160,21 @@ export default function Qfromach() {
                                 </div>
                                 <div className="w-full h-px" style={{ background: dividerColor }} />
                                 <div>
-                                    <p className="text-xs" style={{ color: labelColor }}>Indoor Temp</p>
+                                    <p className="text-xs" style={{ color: labelColor }}>Indoor Temp (ti)</p>
                                     <p className="text-xl font-bold" style={{ color: titleColor }}>
                                         {t_i} <span className="text-sm font-normal" style={{ color: subtitleColor }}>°C</span>
                                     </p>
                                 </div>
                                 <div className="w-full h-px" style={{ background: dividerColor }} />
                                 <div>
-                                    <p className="text-xs" style={{ color: labelColor }}>Temp Difference</p>
+                                    <p className="text-xs" style={{ color: labelColor }}>Outdoor Temp (to)</p>
+                                    <p className="text-xl font-bold" style={{ color: titleColor }}>
+                                        {t_o} <span className="text-sm font-normal" style={{ color: subtitleColor }}>°C</span>
+                                    </p>
+                                </div>
+                                <div className="w-full h-px" style={{ background: dividerColor }} />
+                                <div>
+                                    <p className="text-xs" style={{ color: labelColor }}>Temp Difference (ΔT)</p>
                                     <p className="text-xl font-bold" style={{ color: titleColor }}>
                                         {delta_T} <span className="text-sm font-normal" style={{ color: subtitleColor }}>K</span>
                                     </p>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { MetricCard, ResultCard } from "../dashboard-components";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Info, AlertCircle } from "lucide-react";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
 import { useTheme } from "../theme-context";
@@ -140,17 +140,101 @@ export default function Voaqwqtforce() {
                             <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: subtitleColor }}>Components</h4>
                             <div className="space-y-4">
                                 <div>
-                                    <p className="text-xs" style={{ color: labelColor }}>Thermal Flow</p>
-                                    <p className="text-xl font-bold" style={{ color: titleColor }}>{result.Qt.toFixed(2)} <span className="text-sm font-normal" style={{ color: subtitleColor }}>m³/min</span></p>
+                                    <p className="text-xs" style={{ color: labelColor }}>Thermal Flow (Qt)</p>
+                                    <p className="text-xl font-bold" style={{ color: titleColor }}>
+                                        {result.Qt.toFixed(2)} <span className="text-sm font-normal" style={{ color: subtitleColor }}>m³/min</span>
+                                    </p>
                                 </div>
                                 <div className="w-full h-px" style={{ background: dividerColor }} />
                                 <div>
-                                    <p className="text-xs" style={{ color: labelColor }}>Wind Flow</p>
-                                    <p className="text-xl font-bold" style={{ color: titleColor }}>{result.Qw.toFixed(2)} <span className="text-sm font-normal" style={{ color: subtitleColor }}>m³/min</span></p>
+                                    <p className="text-xs" style={{ color: labelColor }}>Wind Flow (Qw)</p>
+                                    <p className="text-xl font-bold" style={{ color: titleColor }}>
+                                        {result.Qw.toFixed(2)} <span className="text-sm font-normal" style={{ color: subtitleColor }}>m³/min</span>
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     )}
+
+                    {/* Contextual Notice when Thermal Flow is 0 */}
+                    {((result && result.Qt === 0) || (A_inlet > 0 && h > 0 && t_i <= t_o)) && (
+                        <div
+                            className="rounded-2xl p-4 flex items-start gap-3 border transition-all"
+                            style={{
+                                background: isDark ? "rgba(245, 158, 11, 0.08)" : "#fffbeb",
+                                borderColor: isDark ? "rgba(245, 158, 11, 0.25)" : "#fde68a",
+                            }}
+                        >
+                            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                                <p className="text-xs font-bold uppercase tracking-wider text-amber-500">
+                                    Thermal Flow (Qt) is 0
+                                </p>
+                                <p className="text-xs leading-relaxed" style={{ color: isDark ? "#d1d5db" : "#4b5563" }}>
+                                    {t_i <= t_o ? (
+                                        <>
+                                            Indoor temp ({t_i}°C) ≤ Outdoor temp ({t_o}°C). Thermal buoyancy requires <span className="font-semibold text-amber-500">ti &gt; to</span> to generate upward stack flow. Total ventilation is driven entirely by Wind Flow (Qw).
+                                        </>
+                                    ) : (
+                                        <>
+                                            Opening area (A) or height difference (h) is 0. Both parameters must be greater than zero for stack ventilation.
+                                        </>
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Explanatory Card: Thermal Flow & Night Flushing Insights */}
+                    <div
+                        className="rounded-2xl p-6 space-y-4"
+                        style={{ background: cardBg, border: cardBorder }}
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <div className="bg-[#1A73E8]/10 p-2 rounded-xl text-[#1A73E8]">
+                                <Info className="w-4 h-4" />
+                            </div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: subtitleColor }}>
+                                Thermal Flow & Night Flushing
+                            </h4>
+                        </div>
+
+                        <div className="space-y-3.5 text-xs leading-relaxed" style={{ color: subtitleColor }}>
+                            <div>
+                                <p className="font-semibold text-sm mb-1" style={{ color: titleColor }}>
+                                    Why is Thermal Flow 0?
+                                </p>
+                                <p>
+                                    Thermal ventilation is driven by <strong className="text-[#1A73E8]">thermal buoyancy</strong> (stack effect). Warm indoor air is lighter than cool outdoor air and rises through upper openings. If outdoor air is warmer than or equal to indoor air (<span className="font-mono font-semibold">ti ≤ to</span>), buoyant upward flow stops and <span className="font-mono">Qt = 0</span>.
+                                </p>
+                            </div>
+
+                            <div className="w-full h-px" style={{ background: dividerColor }} />
+
+                            <div>
+                                <p className="font-semibold text-sm mb-1" style={{ color: titleColor }}>
+                                    Night Flushing Behavior
+                                </p>
+                                <p>
+                                    In night flushing strategies, outdoor air cools the building thermal mass. Once indoor temperatures drop equal to or below outdoor night air (<span className="font-mono font-semibold">ti ≤ to</span>), the stack effect no longer contributes. The building then relies entirely on <strong className="text-[#1A73E8]">wind-driven cross-ventilation (Qw)</strong>.
+                                </p>
+                            </div>
+
+                            <div className="w-full h-px" style={{ background: dividerColor }} />
+
+                            <div>
+                                <p className="font-semibold text-sm mb-1" style={{ color: titleColor }}>
+                                    Formula Guard
+                                </p>
+                                <div className="p-2.5 rounded-xl font-mono text-[11px] my-1" style={{ background: previewBg, border: previewBorder, color: titleColor }}>
+                                    Qt = 7.0 × A × √(max(0, h × (ti - to)))
+                                </div>
+                                <p className="text-[11px] mt-1">
+                                    When (ti - to) ≤ 0, the term is clamped to 0 to prevent imaginary roots.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
