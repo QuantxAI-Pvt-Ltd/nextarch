@@ -19,10 +19,10 @@ import { useTheme } from "./theme-context";
 import { useSidebar } from "./sidebar-context";
 
 const sidebarItems = [
-    { icon: Wind, label: "Volume of Air (Heat Gain)", mode: "volume-heat-gain" },
     { icon: LayoutGrid, label: "Window Calculations", mode: "window-calculations" },
-    { icon: Activity, label: "Volume of Air (Qw + Qt Forces)", mode: "volume-forces" },
     { icon: TableProperties, label: "Q from ACH", mode: "q-from-ach" },
+    { icon: Wind, label: "Volume of Air (Heat Gain)", mode: "volume-heat-gain" },
+    { icon: Activity, label: "Volume of Air (Qw + Qt Forces)", mode: "volume-forces" },
     { icon: Volume2, label: "By Element", mode: "by-element" },
     { icon: Sun, label: "Equivalent Solar Heat Gain", mode: "solar-heat-gain" },
 ];

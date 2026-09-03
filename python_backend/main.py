@@ -1,5 +1,8 @@
-from fastapi import FastAPI, UploadFile, File
+import os
+from fastapi import FastAPI, UploadFile, File, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from math import sqrt
@@ -7,16 +10,43 @@ import uvicorn
 import pandas as pd
 import io
 
-app = FastAPI(title="HVAC Formula Calculator API")
+app = FastAPI(
+    title="HVAC Formula Calculator API",
+    docs_url="/docs" if os.getenv("ENVIRONMENT") != "production" else None,
+    redoc_url="/redoc" if os.getenv("ENVIRONMENT") != "production" else None,
+)
 
-# CORS middleware to allow frontend access
+# CORS middleware with environment-based origins
+raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://ventwisebackend.vercel.app")
+allowed_origins = [orig.strip() for orig in raw_origins.split(",") if orig.strip()]
+if "*" in allowed_origins or not allowed_origins:
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# ==================== Global Exception Handlers ====================
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"success": False, "error": "Invalid request parameters", "details": exc.errors()},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"success": False, "error": "An internal server error occurred"},
+    )
 
 
 # ==================== Pydantic Models ====================
@@ -77,6 +107,8 @@ class QFromACHRequest(BaseModel):
     rho: float = Field(1.2, description="Air density (kg/m³)")
     Cp: float = Field(1005.0, description="Specific heat (J/kg·K)")
     delta_T: float = Field(..., description="Temperature difference (K)")
+    t_i: Optional[float] = Field(None, description="Indoor temperature (°C)")
+    t_o: Optional[float] = Field(None, description="Outdoor temperature (°C)")
 
 
 class QFromACHResponse(BaseModel):
@@ -453,10 +485,10 @@ async def get_epw_day(request: EPWDayRequest):
             rows=rows
         )
 
-    except Exception as e:
+    except Exception:
         return EPWDayResponse(
             success=False,
-            message=f"Error fetching day data: {str(e)}",
+            message="Error retrieving day data from EPW dataset.",
             rows=[]
         )
 
@@ -465,28 +497,46 @@ async def get_epw_day(request: EPWDayRequest):
 async def upload_epw(file: UploadFile = File(...)):
     """Upload and store EPW file data in memory for later queries"""
     try:
-        # Read the file content
+        # 1. Filename validation
+        if not file.filename or not file.filename.lower().endswith(".epw"):
+            return {
+                "success": False,
+                "message": "Invalid file type. Only .epw weather files are supported.",
+                "years": [],
+                "total_records": 0
+            }
+
+        # 2. File size limit (15MB)
+        MAX_FILE_SIZE = 15 * 1024 * 1024
         content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            return {
+                "success": False,
+                "message": "File exceeds maximum allowed size of 15MB.",
+                "years": [],
+                "total_records": 0
+            }
         
-        # Store in a simple in-memory cache (in production, use proper storage)
-        # For now, we'll just parse and return available years
+        # Parse EPW data safely
         df = pd.read_csv(io.BytesIO(content), skiprows=8, header=None)
         
         # Rename columns based on standard EPW format
         df = df.rename(columns={
             0: 'Year', 1: 'Month', 2: 'Day', 3: 'Hour', 4: 'Minute',
             6: 'DryBulbTemp',
+            13: 'GlobalHorizontalRadiation',
+            14: 'DirectNormalRadiation',
+            15: 'DiffuseHorizontalRadiation',
             21: 'WindSpeed'
         })
         
-        # Store the dataframe globally (simplified for demo)
+        # Store the dataframe globally
         global epw_data
         epw_data = df
         
-        
         unique_years = sorted(df['Year'].unique().tolist())
 
-        # Get available months for each year to display like in the streamlit app
+        # Get available months for each year
         year_month_data = {}
         month_names = ['January', 'February', 'March', 'April', 'May', 'June',
                       'July', 'August', 'September', 'October', 'November', 'December']
@@ -496,8 +546,7 @@ async def upload_epw(file: UploadFile = File(...)):
             month_name_list = [month_names[m-1] for m in months_in_year]
             year_month_data[str(year)] = month_name_list
 
-        # Build a fully nested structure: year → month → { days, hours_by_day }
-        # Keys are strings so they serialise cleanly to JSON.
+        # Build nested structure: year → month → { days, hours_by_day }
         available_data: dict = {}
         for year in unique_years:
             year_df = df[df['Year'] == year]
@@ -522,10 +571,10 @@ async def upload_epw(file: UploadFile = File(...)):
             "available_data": available_data,
             "total_records": len(df)
         }
-    except Exception as e:
+    except Exception:
         return {
             "success": False,
-            "message": f"Error parsing EPW file: {str(e)}",
+            "message": "Failed to parse EPW file format.",
             "years": [],
             "total_records": 0
         }
@@ -578,16 +627,198 @@ async def query_epw(request: EPWDataRequest):
             message=f"Data found: Temp={temp}°C, Wind={wind_ms} m/s ({wind_mh} m/h)"
         )
         
-    except Exception as e:
+    except Exception:
         return EPWDataResponse(
             temperature=0.0,
             wind_speed_mh=0.0,
             wind_speed_ms=0.0,
-            success= False,
-            message=f"Error querying EPW data: {str(e)}"
+            success=False,
+            message="Error querying EPW data."
+        )
+
+
+class EPWDayDataRequest(BaseModel):
+    year: int = Field(..., description="Year")
+    month: int = Field(..., description="Month (1-12)")
+    day: int = Field(..., description="Day (1-31)")
+
+
+class EPWHourlyRecord(BaseModel):
+    hour: int
+    time_label: str
+    temperature: float
+    wind_speed_ms: float
+    wind_speed_mh: float
+    radiation: float
+    global_horizontal_radiation: float
+    direct_normal_radiation: float
+    diffuse_horizontal_radiation: float
+
+
+@app.post("/api/query-epw-day")
+async def query_epw_day(request: EPWDayDataRequest):
+    """Query all 24 hours of EPW data for a specific date to populate the viewer table"""
+    try:
+        global epw_data
+        
+        if epw_data is None:
+            return {
+                "success": False,
+                "message": "No EPW file uploaded. Please upload an EPW file first.",
+                "records": []
+            }
+        
+        mask = (
+            (epw_data['Year'] == request.year) &
+            (epw_data['Month'] == request.month) &
+            (epw_data['Day'] == request.day)
+        )
+        
+        selected_rows = epw_data[mask].sort_values(by='Hour')
+        
+        if selected_rows.empty:
+            return {
+                "success": False,
+                "message": f"No data found for {request.year}-{request.month:02d}-{request.day:02d}",
+                "records": []
+            }
+        
+        records = []
+        for _, row in selected_rows.iterrows():
+            hr = int(row['Hour'])
+            temp = float(row['DryBulbTemp']) if 'DryBulbTemp' in row else 0.0
+            wind_ms = float(row['WindSpeed']) if 'WindSpeed' in row else 0.0
+            wind_mh = wind_ms * 3600.0
+            gh_rad = float(row['GlobalHorizontalRadiation']) if 'GlobalHorizontalRadiation' in row else 0.0
+            dn_rad = float(row['DirectNormalRadiation']) if 'DirectNormalRadiation' in row else 0.0
+            df_rad = float(row['DiffuseHorizontalRadiation']) if 'DiffuseHorizontalRadiation' in row else 0.0
+            
+            if hr == 24:
+                time_label = "12 AM"
+            elif hr == 12:
+                time_label = "12 PM"
+            elif hr > 12:
+                time_label = f"{hr - 12} PM"
+            else:
+                time_label = f"{hr} AM"
+            
+            records.append({
+                "hour": hr,
+                "time_label": time_label,
+                "temperature": round(temp, 2),
+                "wind_speed_ms": round(wind_ms, 2),
+                "wind_speed_mh": round(wind_mh, 0),
+                "radiation": round(gh_rad, 2),
+                "global_horizontal_radiation": round(gh_rad, 2),
+                "direct_normal_radiation": round(dn_rad, 2),
+                "diffuse_horizontal_radiation": round(df_rad, 2),
+            })
+        
+        return {
+            "success": True,
+            "message": f"{len(records)} hourly records loaded.",
+            "records": records
+        }
+    except Exception:
+        return {
+            "success": False,
+            "message": "Error querying EPW day data.",
+            "records": []
+        }
+
+
+class EPWMonthlyDiffuseRequest(BaseModel):
+    year: int = Field(..., description="Year")
+    month: int = Field(..., description="Month (1-12)")
+
+
+class EPWMonthlyDiffuseResponse(BaseModel):
+    success: bool
+    message: str
+    year: int
+    month: int
+    month_name: str
+    days_count: int
+    avg_daily_diffuse_wh_m2: float
+    diffuse_rad_w_m2: float
+
+
+@app.post("/api/query-epw-monthly-diffuse", response_model=EPWMonthlyDiffuseResponse)
+async def query_epw_monthly_diffuse(request: EPWMonthlyDiffuseRequest):
+    """Query monthly average daily diffuse radiation and convert Wh/m² to W/m² (divided by 24)"""
+    try:
+        global epw_data
+        
+        if epw_data is None:
+            return EPWMonthlyDiffuseResponse(
+                success=False,
+                message="No EPW file uploaded. Please upload an EPW file first.",
+                year=request.year,
+                month=request.month,
+                month_name="",
+                days_count=0,
+                avg_daily_diffuse_wh_m2=0.0,
+                diffuse_rad_w_m2=0.0
+            )
+        
+        mask = (
+            (epw_data['Year'] == request.year) &
+            (epw_data['Month'] == request.month)
+        )
+        
+        month_rows = epw_data[mask]
+        
+        if month_rows.empty:
+            return EPWMonthlyDiffuseResponse(
+                success=False,
+                message=f"No data found for Year {request.year}, Month {request.month}",
+                year=request.year,
+                month=request.month,
+                month_name="",
+                days_count=0,
+                avg_daily_diffuse_wh_m2=0.0,
+                diffuse_rad_w_m2=0.0
+            )
+        
+        month_names = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ]
+        month_name = month_names[request.month - 1] if 1 <= request.month <= 12 else str(request.month)
+        
+        # Calculate daily sum of DiffuseHorizontalRadiation (each row is hourly Wh/m²)
+        daily_sums = month_rows.groupby('Day')['DiffuseHorizontalRadiation'].sum()
+        days_count = int(len(daily_sums))
+        avg_daily_diffuse_wh_m2 = float(daily_sums.mean()) if days_count > 0 else 0.0
+        
+        # Convert Wh/sq.m to W/m² by dividing daily average by 24
+        diffuse_rad_w_m2 = avg_daily_diffuse_wh_m2 / 24.0
+        
+        return EPWMonthlyDiffuseResponse(
+            success=True,
+            message=f"Monthly diffuse radiation for {month_name} {request.year} calculated successfully.",
+            year=request.year,
+            month=request.month,
+            month_name=month_name,
+            days_count=days_count,
+            avg_daily_diffuse_wh_m2=round(avg_daily_diffuse_wh_m2, 2),
+            diffuse_rad_w_m2=round(diffuse_rad_w_m2, 2)
+        )
+    except Exception:
+        return EPWMonthlyDiffuseResponse(
+            success=False,
+            message="Error querying EPW monthly diffuse radiation.",
+            year=request.year,
+            month=request.month,
+            month_name="",
+            days_count=0,
+            avg_daily_diffuse_wh_m2=0.0,
+            diffuse_rad_w_m2=0.0
         )
 
 
 # Initialize global EPW data storage
 epw_data = None
+
+
 

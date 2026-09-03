@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MetricCard, ResultCard } from "../dashboard-components";
+import { MetricCard, ResultCard, ValidationAlert } from "../dashboard-components";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Layers, ArrowRight, ArrowLeft } from "lucide-react";
 import "katex/dist/katex.min.css";
@@ -17,6 +17,7 @@ interface Element {
 
 interface ResultData {
     Q_total: number;
+    total_UA: number;
     elements_UA: number[];
 }
 
@@ -28,24 +29,65 @@ export default function Byelement() {
     const [deltaT, setDeltaT] = useState<number>(0);
     const [result, setResult] = useState<ResultData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState<Record<string, boolean>>({});
+    const [invalidElements, setInvalidElements] = useState<Record<string, boolean>>({});
+    const [errorList, setErrorList] = useState<string[]>([]);
 
     const handleElementChange = (index: number, field: 'U' | 'A', value: string) => {
         const newElements = [...elements];
         const parsed = parseFloat(value);
         newElements[index][field] = isNaN(parsed) ? 0 : Math.abs(parsed);
         setElements(newElements);
+        setInvalidElements(prev => ({ ...prev, [`${index}-${field}`]: false }));
+        if (errorList.length > 0) setErrorList([]);
     };
 
     const addElement = () => setElements([...elements, { U: 0, A: 0 }]);
 
     const removeElement = (index: number) => {
-        if (elements.length > 1) setElements(elements.filter((_, i) => i !== index));
+        if (elements.length > 1) {
+            setElements(elements.filter((_, i) => i !== index));
+            setInvalidElements({});
+            setErrorList([]);
+        }
     };
 
     const handleCalculate = async () => {
+        const newErrors: Record<string, boolean> = {};
+        const newInvalidElements: Record<string, boolean> = {};
+        const missing: string[] = [];
+
+        if (!deltaT || deltaT <= 0) {
+            newErrors.deltaT = true;
+            missing.push("Temp. Diff (ΔT)");
+        }
+
+        elements.forEach((el, idx) => {
+            const num = idx + 1;
+            if (!el.U || el.U <= 0) {
+                newInvalidElements[`${idx}-U`] = true;
+                missing.push(`Element ${num} U-value`);
+            }
+            if (!el.A || el.A <= 0) {
+                newInvalidElements[`${idx}-A`] = true;
+                missing.push(`Element ${num} Area`);
+            }
+        });
+
+        if (missing.length > 0) {
+            setErrors(newErrors);
+            setInvalidElements(newInvalidElements);
+            setErrorList(missing);
+            return;
+        }
+
+        setErrors({});
+        setInvalidElements({});
+        setErrorList([]);
         setLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/by-element`, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/api/by-element`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ elements, delta_T: deltaT }),
@@ -53,9 +95,8 @@ export default function Byelement() {
             if (!response.ok) throw new Error('API request failed');
             const data = await response.json();
             setResult(data);
-        } catch (error) {
-            console.error('Error calculating:', error);
-            alert('Error calculating...');
+        } catch {
+            alert('Unable to complete calculation. Please verify your inputs and backend connection.');
         } finally {
             setLoading(false);
         }
@@ -95,8 +136,11 @@ export default function Byelement() {
                             value={deltaT}
                             unit="K"
                             name="deltaT"
+                            error={errors.deltaT}
                             onChange={(e) => {
                                 const parsed = parseFloat(e.target.value);
+                                setErrors(prev => ({ ...prev, deltaT: false }));
+                                if (errorList.length > 0) setErrorList([]);
                                 setDeltaT(isNaN(parsed) ? 0 : Math.abs(parsed));
                             }}
                         />
@@ -118,71 +162,89 @@ export default function Byelement() {
                         </div>
 
                         <div className="space-y-4">
-                            {elements.map((element, index) => (
-                                <div
-                                    key={index}
-                                    className="rounded-xl p-4 relative group transition-all"
-                                    style={{ background: rowBg, border: rowBorder }}
-                                >
-                                    <div className="flex flex-wrap md:flex-nowrap items-end gap-4">
-                                        <div className="flex-1 min-w-[140px]">
-                                            <Label className="text-xs mb-1.5 block" style={{ color: labelColor }}>U-value (W/m²·K)</Label>
-                                            <Input
-                                            type="number"
-                                                value={element.U}
-                                                onChange={(e) => handleElementChange(index, 'U', e.target.value)}
-                                                min={0}
-                                                onFocus={(e) => e.target.select()}
-                                                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
-                                                className="h-10"
-                                                style={{
-                                                    background: cardBg,
-                                                    border: cardBorder,
-                                                    color: titleColor,
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="flex items-center justify-center pb-2" style={{ color: labelColor }}>
-                                            <ArrowRight className="h-4 w-4" />
-                                        </div>
-                                        <div className="flex-1 min-w-[140px]">
-                                            <Label className="text-xs mb-1.5 block" style={{ color: labelColor }}>Area (m²)</Label>
-                                            <Input
-                                                type="number"
-                                                value={element.A}
-                                                onChange={(e) => handleElementChange(index, 'A', e.target.value)}
-                                                min={0}
-                                                onFocus={(e) => e.target.select()}
-                                                onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
-                                                className="h-10"
-                                                style={{
-                                                    background: cardBg,
-                                                    border: cardBorder,
-                                                    color: titleColor,
-                                                }}
-                                            />
-                                        </div>
-                                        {elements.length > 1 && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => removeElement(index)}
-                                                className="text-gray-500 hover:text-red-400 hover:bg-transparent h-10 w-10 shrink-0"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </div>
+                            {elements.map((element, index) => {
+                                const hasElementError = invalidElements[`${index}-U`] || invalidElements[`${index}-A`];
+                                return (
                                     <div
-                                        className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono"
-                                        style={{ background: numberBubbleBg, border: numberBubbleBorder, color: labelColor }}
+                                        key={index}
+                                        className="rounded-xl p-4 relative group transition-all"
+                                        style={{
+                                            background: rowBg,
+                                            border: hasElementError ? "1px solid #ef4444" : rowBorder,
+                                            boxShadow: hasElementError ? (isDark ? "0 0 0 1px rgba(239,68,68,0.4)" : "0 0 0 1px #ef4444") : "none",
+                                        }}
                                     >
-                                        {index + 1}
+                                        <div className="flex flex-wrap md:flex-nowrap items-end gap-4">
+                                            <div className="flex-1 min-w-[140px]">
+                                                <Label className="text-xs mb-1.5 block" style={{ color: invalidElements[`${index}-U`] ? "#ef4444" : labelColor }}>
+                                                    U-value (W/m²·K) {invalidElements[`${index}-U`] && "*"}
+                                                </Label>
+                                                <Input
+                                                    type="number"
+                                                    value={element.U}
+                                                    onChange={(e) => handleElementChange(index, 'U', e.target.value)}
+                                                    min={0}
+                                                    onFocus={(e) => e.target.select()}
+                                                    onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                                                    className="h-10"
+                                                    style={{
+                                                        background: cardBg,
+                                                        border: invalidElements[`${index}-U`] ? "1px solid #ef4444" : cardBorder,
+                                                        color: invalidElements[`${index}-U`] ? "#ef4444" : titleColor,
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-center pb-2" style={{ color: labelColor }}>
+                                                <ArrowRight className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex-1 min-w-[140px]">
+                                                <Label className="text-xs mb-1.5 block" style={{ color: invalidElements[`${index}-A`] ? "#ef4444" : labelColor }}>
+                                                    Area (m²) {invalidElements[`${index}-A`] && "*"}
+                                                </Label>
+                                                <Input
+                                                    type="number"
+                                                    value={element.A}
+                                                    onChange={(e) => handleElementChange(index, 'A', e.target.value)}
+                                                    min={0}
+                                                    onFocus={(e) => e.target.select()}
+                                                    onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
+                                                    className="h-10"
+                                                    style={{
+                                                        background: cardBg,
+                                                        border: invalidElements[`${index}-A`] ? "1px solid #ef4444" : cardBorder,
+                                                        color: invalidElements[`${index}-A`] ? "#ef4444" : titleColor,
+                                                    }}
+                                                />
+                                            </div>
+                                            {elements.length > 1 && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeElement(index)}
+                                                    className="text-gray-500 hover:text-red-400 hover:bg-transparent h-10 w-10 shrink-0"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <div
+                                            className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold"
+                                            style={{
+                                                background: numberBubbleBg,
+                                                border: hasElementError ? "1px solid #ef4444" : numberBubbleBorder,
+                                                color: hasElementError ? "#ef4444" : labelColor,
+                                            }}
+                                        >
+                                            {index + 1}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
+
+                    {/* Validation Alert */}
+                    <ValidationAlert errors={errorList} onDismiss={() => setErrorList([])} />
 
                     <div className="flex justify-end">
                         <Button

@@ -30,30 +30,44 @@ function CalculatorContent() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function checkAccess() {
-      const res = await fetch("/api/usage");
-      if (res.status === 401) {
-        // Not logged in — send to login
-        router.push("/login");
-        return;
-      }
-      if (res.ok) {
-        const data: UsageData = await res.json();
-        setUsageData(data);
+      try {
+        const res = await fetch("/api/usage", { signal: controller.signal });
+        if (res.status === 401) {
+          // Not logged in — send to login
+          router.push("/login");
+          return;
+        }
+        if (res.ok) {
+          const data: UsageData = await res.json();
+          setUsageData(data);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        // Gracefully ignore transient network errors during navigation
       }
     }
+
     checkAccess();
+
+    return () => {
+      controller.abort();
+    };
   }, [router]);
 
   const renderCalculator = () => {
     switch (mode) {
-      case "window-calculations":   return <Windowcalculations />;
-      case "volume-heat-gain":      return <Volumeofairheatgain />;
-      case "volume-forces":         return <Voaqwqtforce />;
-      case "q-from-ach":            return <Qfromach />;
-      case "by-element":            return <Byelement />;
-      case "solar-heat-gain":       return <SolarHeatGain />;
-      default:                      return <Windowcalculations />;
+      case "window-calculations": return <Windowcalculations />;
+      case "volume-heat-gain": return <Volumeofairheatgain />;
+      case "volume-forces": return <Voaqwqtforce />;
+      case "q-from-ach": return <Qfromach />;
+      case "by-element": return <Byelement />;
+      case "solar-heat-gain": return <SolarHeatGain />;
+      default: return <Windowcalculations />;
     }
   };
 

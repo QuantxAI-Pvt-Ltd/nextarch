@@ -1,8 +1,6 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-type Theme = "light" | "dark";
-
 interface GlobalThemeContextValue {
   isDark: boolean;
   toggleTheme: () => void;
@@ -14,13 +12,12 @@ const GlobalThemeContext = createContext<GlobalThemeContextValue>({
 });
 
 export function GlobalThemeProvider({ children }: { children: ReactNode }) {
-  const [isDark, setIsDark] = useState(false);
-
-  // Sync from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("ventwise-theme");
-    if (saved === "dark") setIsDark(true);
-  }, []);
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ventwise-theme") === "dark";
+    }
+    return false;
+  });
 
   // Apply dark class to document root
   useEffect(() => {
@@ -36,7 +33,9 @@ export function GlobalThemeProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => {
     setIsDark((prev) => {
       const next = !prev;
-      localStorage.setItem("ventwise-theme", next ? "dark" : "light");
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ventwise-theme", next ? "dark" : "light");
+      }
       return next;
     });
   };

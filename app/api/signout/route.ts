@@ -5,7 +5,10 @@ export function POST(request: NextRequest) {
   url.pathname = "/description";
   url.search = "";
   const response = NextResponse.redirect(url);
-  // Clear the auth cookie
+  
+  // Clear auth and pending legal cookies
   response.cookies.delete("nextarch_user");
+  response.cookies.delete("nextarch_pending_legal");
+  
   return response;
 }
