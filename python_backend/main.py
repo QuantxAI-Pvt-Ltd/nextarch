@@ -16,16 +16,15 @@ app = FastAPI(
     redoc_url="/redoc" if os.getenv("ENVIRONMENT") != "production" else None,
 )
 
-# CORS middleware with environment-based origins
-raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://ventwisebackend.vercel.app")
+# CORS middleware driven entirely by CORS_ORIGINS in environment
+raw_origins = os.getenv("CORS_ORIGINS", "*")
 allowed_origins = [orig.strip() for orig in raw_origins.split(",") if orig.strip()]
-if "*" in allowed_origins or not allowed_origins:
-    allowed_origins = ["*"]
+allow_all = "*" in allowed_origins or not allowed_origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_origins=["*"] if allow_all else allowed_origins,
+    allow_credentials=not allow_all,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
