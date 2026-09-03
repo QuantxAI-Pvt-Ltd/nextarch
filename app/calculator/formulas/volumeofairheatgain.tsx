@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MetricCard, ResultCard } from "../dashboard-components";
+import { MetricCard, ResultCard, ValidationAlert } from "../dashboard-components";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import "katex/dist/katex.min.css";
@@ -30,19 +30,53 @@ export default function Volumeofairheatgain() {
 
     const [result, setResult] = useState<ResultData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState<Record<string, boolean>>({});
+    const [errorList, setErrorList] = useState<string[]>([]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const parsed = parseFloat(value);
+        setErrors(prev => ({ ...prev, [name]: false }));
+        if (errorList.length > 0) setErrorList([]);
         setvalues(prev => ({ ...prev, [name]: isNaN(parsed) ? 0 : Math.abs(parsed) }));
-    }
+    };
 
     const { ks, h, t, wo, kl, wi } = values;
 
     const handleCalculate = async () => {
+        const newErrors: Record<string, boolean> = {};
+        const missing: string[] = [];
+
+        const hasSensible = ks > 0;
+        const hasLatent = kl > 0;
+
+        if (!hasSensible && !hasLatent) {
+            newErrors.ks = true;
+            newErrors.kl = true;
+            missing.push("Sensible Heat (Ks) or Latent Heat (Kl)");
+        } else {
+            if (hasSensible && (!t || t <= 0)) {
+                newErrors.t = true;
+                missing.push("Temp Rise (t) — cannot be 0 when Sensible Heat is entered");
+            }
+            if (hasLatent && (!h || h <= 0)) {
+                newErrors.h = true;
+                missing.push("Vapor Diff (h) — cannot be 0 when Latent Heat is entered");
+            }
+        }
+
+        if (missing.length > 0) {
+            setErrors(newErrors);
+            setErrorList(missing);
+            return;
+        }
+
+        setErrors({});
+        setErrorList([]);
         setLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/volume-air-heat-gain`, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/api/volume-air-heat-gain`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -91,6 +125,7 @@ export default function Volumeofairheatgain() {
                             unit="W"
                             name="ks"
                             onChange={handleChange}
+                            error={errors.ks}
                         />
                         <MetricCard
                             label="Vapor Diff (h)"
@@ -98,6 +133,7 @@ export default function Volumeofairheatgain() {
                             unit="mm Hg"
                             name="h"
                             onChange={handleChange}
+                            error={errors.h}
                         />
                         <MetricCard
                             label="Temp Rise (t)"
@@ -105,6 +141,7 @@ export default function Volumeofairheatgain() {
                             unit="°C"
                             name="t"
                             onChange={handleChange}
+                            error={errors.t}
                         />
                         <MetricCard
                             label="Spec. Humidity Out (wo)"
@@ -120,6 +157,7 @@ export default function Volumeofairheatgain() {
                             unit="W"
                             name="kl"
                             onChange={handleChange}
+                            error={errors.kl}
                         />
                         <MetricCard
                             label="Spec. Humidity In (wi)"
@@ -130,6 +168,9 @@ export default function Volumeofairheatgain() {
                             onChange={handleChange}
                         />
                     </div>
+
+                    {/* Validation Alert */}
+                    <ValidationAlert errors={errorList} onDismiss={() => setErrorList([])} />
 
                     <div className="flex justify-end">
                         <Button

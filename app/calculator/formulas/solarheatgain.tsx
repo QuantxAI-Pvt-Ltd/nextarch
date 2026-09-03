@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ResultCard } from "../dashboard-components";
+import { ResultCard, ValidationAlert } from "../dashboard-components";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import "katex/dist/katex.min.css";
 import { BlockMath } from "react-katex";
 import { useTheme } from "../theme-context";
 import EpwViewer from "../epw-viewer";
+import { cn } from "@/lib/utils";
 
 interface WindowElement {
     qa: number;
@@ -30,6 +31,8 @@ export default function SolarHeatGain() {
     ]);
     const [result, setResult] = useState<ResultData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [invalidFields, setInvalidFields] = useState<Record<string, boolean>>({});
+    const [errorList, setErrorList] = useState<string[]>([]);
 
     const handleAddElement = () => {
         const currentRad = elements[0]?.radiation ?? 800;
@@ -39,6 +42,8 @@ export default function SolarHeatGain() {
     const handleRemoveElement = (index: number) => {
         if (elements.length > 1) {
             setElements(elements.filter((_, i) => i !== index));
+            setInvalidFields({});
+            setErrorList([]);
         }
     };
 
@@ -47,9 +52,38 @@ export default function SolarHeatGain() {
         const parsed = parseFloat(value);
         newElements[index][field] = isNaN(parsed) ? 0 : Math.abs(parsed);
         setElements(newElements);
+        setInvalidFields(prev => ({ ...prev, [`${index}-${field}`]: false }));
+        if (errorList.length > 0) setErrorList([]);
     };
 
     const handleCalculate = async () => {
+        const newErrors: Record<string, boolean> = {};
+        const missing: string[] = [];
+
+        elements.forEach((el, idx) => {
+            const num = idx + 1;
+            if (!el.area || el.area <= 0) {
+                newErrors[`${idx}-area`] = true;
+                missing.push(`Window ${num} Area`);
+            }
+            if (!el.shgc || el.shgc <= 0) {
+                newErrors[`${idx}-shgc`] = true;
+                missing.push(`Window ${num} SHGC`);
+            }
+            if (!el.radiation || el.radiation <= 0) {
+                newErrors[`${idx}-radiation`] = true;
+                missing.push(`Window ${num} Radiation`);
+            }
+        });
+
+        if (missing.length > 0) {
+            setInvalidFields(newErrors);
+            setErrorList(missing);
+            return;
+        }
+
+        setInvalidFields({});
+        setErrorList([]);
         setLoading(true);
         try {
             const Q_solar = elements.reduce((acc, el) => acc + (el.qa * el.area * el.shgc * el.pf * el.radiation), 0);
@@ -108,106 +142,134 @@ export default function SolarHeatGain() {
                             </Button>
                         </div>
 
-                        {elements.map((element, index) => (
-                            <div
-                                key={index}
-                                className="p-5 rounded-2xl relative transition-all"
-                                style={{ background: rowBg, border: rowBorder }}
-                            >
-                                <div className="absolute -left-3 -top-3 w-8 h-8 rounded-full flex items-center justify-center font-bold text-[#1A73E8] shadow-sm z-10"
-                                    style={{ background: numberBubbleBg, border: numberBubbleBorder }}>
-                                    {index + 1}
-                                </div>
+                        {elements.map((element, index) => {
+                            const hasCardError = invalidFields[`${index}-area`] || invalidFields[`${index}-shgc`] || invalidFields[`${index}-radiation`];
+                            return (
+                                <div
+                                    key={index}
+                                    className="p-5 rounded-2xl relative transition-all"
+                                    style={{
+                                        background: rowBg,
+                                        border: hasCardError ? "1px solid #ef4444" : rowBorder,
+                                        boxShadow: hasCardError ? (isDark ? "0 0 0 1px rgba(239,68,68,0.4)" : "0 0 0 1px #ef4444") : "none",
+                                    }}
+                                >
+                                    <div className="absolute -left-3 -top-3 w-8 h-8 rounded-full flex items-center justify-center font-bold text-[#1A73E8] shadow-sm z-10"
+                                        style={{ background: numberBubbleBg, border: numberBubbleBorder }}>
+                                        {index + 1}
+                                    </div>
 
-                                <div className="flex justify-between items-start mb-4">
-                                    <h3 className="font-medium text-sm ml-4" style={{ color: titleColor }}>Window {index + 1} Profile</h3>
-                                    {elements.length > 1 && (
-                                        <Button
-                                            onClick={() => handleRemoveElement(index)}
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    )}
-                                </div>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center gap-2 ml-4">
+                                            <h3 className="font-medium text-sm" style={{ color: hasCardError ? "#ef4444" : titleColor }}>
+                                                Window {index + 1} Profile
+                                            </h3>
+                                            {hasCardError && (
+                                                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-red-500/10 text-red-500 font-semibold">
+                                                    Required
+                                                </span>
+                                            )}
+                                        </div>
+                                        {elements.length > 1 && (
+                                            <Button
+                                                onClick={() => handleRemoveElement(index)}
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        )}
+                                    </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: labelColor }}>
-                                            Quantity
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={element.qa || ''}
-                                            onChange={(e) => handleElementChange(index, "qa", e.target.value)}
-                                            className="w-full bg-transparent border-0 border-b-2 border-transparent hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors"
-                                            style={{ color: titleColor }}
-                                            placeholder="1"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: labelColor }}>
-                                            Area (m²)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={element.area || ''}
-                                            onChange={(e) => handleElementChange(index, "area", e.target.value)}
-                                            className="w-full bg-transparent border-0 border-b-2 border-transparent hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors"
-                                            style={{ color: titleColor }}
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: labelColor }}>
-                                            SHGC
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={element.shgc || ''}
-                                            onChange={(e) => handleElementChange(index, "shgc", e.target.value)}
-                                            className="w-full bg-transparent border-0 border-b-2 border-transparent hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors"
-                                            style={{ color: titleColor }}
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: labelColor }}>
-                                            PF
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            value={element.pf || ''}
-                                            onChange={(e) => handleElementChange(index, "pf", e.target.value)}
-                                            className="w-full bg-transparent border-0 border-b-2 border-transparent hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors"
-                                            style={{ color: titleColor }}
-                                            placeholder="1.0"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: labelColor }}>
-                                            Diffuse Rad (W/m²)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={element.radiation || ''}
-                                            onChange={(e) => handleElementChange(index, "radiation", e.target.value)}
-                                            className="w-full bg-transparent border-0 border-b-2 border-transparent hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors"
-                                            style={{ color: titleColor }}
-                                            placeholder="800"
-                                        />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: labelColor }}>
+                                                Quantity
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={element.qa || ''}
+                                                onChange={(e) => handleElementChange(index, "qa", e.target.value)}
+                                                className="w-full bg-transparent border-0 border-b-2 border-transparent hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors"
+                                                style={{ color: titleColor }}
+                                                placeholder="1"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: invalidFields[`${index}-area`] ? "#ef4444" : labelColor }}>
+                                                Area (m²) {invalidFields[`${index}-area`] && "*"}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={element.area || ''}
+                                                onChange={(e) => handleElementChange(index, "area", e.target.value)}
+                                                className={cn(
+                                                    "w-full bg-transparent border-0 border-b-2 hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors",
+                                                    invalidFields[`${index}-area`] ? "border-b-red-500 text-red-500" : "border-transparent"
+                                                )}
+                                                style={{ color: invalidFields[`${index}-area`] ? "#ef4444" : titleColor }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: invalidFields[`${index}-shgc`] ? "#ef4444" : labelColor }}>
+                                                SHGC {invalidFields[`${index}-shgc`] && "*"}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={element.shgc || ''}
+                                                onChange={(e) => handleElementChange(index, "shgc", e.target.value)}
+                                                className={cn(
+                                                    "w-full bg-transparent border-0 border-b-2 hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors",
+                                                    invalidFields[`${index}-shgc`] ? "border-b-red-500 text-red-500" : "border-transparent"
+                                                )}
+                                                style={{ color: invalidFields[`${index}-shgc`] ? "#ef4444" : titleColor }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: labelColor }}>
+                                                PF
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                value={element.pf || ''}
+                                                onChange={(e) => handleElementChange(index, "pf", e.target.value)}
+                                                className="w-full bg-transparent border-0 border-b-2 border-transparent hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors"
+                                                style={{ color: titleColor }}
+                                                placeholder="1.0"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: invalidFields[`${index}-radiation`] ? "#ef4444" : labelColor }}>
+                                                Diffuse Rad (W/m²) {invalidFields[`${index}-radiation`] && "*"}
+                                            </label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={element.radiation || ''}
+                                                onChange={(e) => handleElementChange(index, "radiation", e.target.value)}
+                                                className={cn(
+                                                    "w-full bg-transparent border-0 border-b-2 hover:border-[#1A73E8]/30 focus:border-[#1A73E8] focus:ring-0 px-0 py-2 text-lg font-mono transition-colors",
+                                                    invalidFields[`${index}-radiation`] ? "border-b-red-500 text-red-500" : "border-transparent"
+                                                )}
+                                                style={{ color: invalidFields[`${index}-radiation`] ? "#ef4444" : titleColor }}
+                                                placeholder="800"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
+
+                    {/* Validation Alert */}
+                    <ValidationAlert errors={errorList} onDismiss={() => setErrorList([])} />
 
                     <div className="flex justify-end pt-4 border-t" style={{ borderColor: dividerColor }}>
                         <Button

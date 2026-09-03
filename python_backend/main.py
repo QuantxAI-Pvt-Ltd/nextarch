@@ -107,6 +107,8 @@ class QFromACHRequest(BaseModel):
     rho: float = Field(1.2, description="Air density (kg/m³)")
     Cp: float = Field(1005.0, description="Specific heat (J/kg·K)")
     delta_T: float = Field(..., description="Temperature difference (K)")
+    t_i: Optional[float] = Field(None, description="Indoor temperature (°C)")
+    t_o: Optional[float] = Field(None, description="Outdoor temperature (°C)")
 
 
 class QFromACHResponse(BaseModel):
