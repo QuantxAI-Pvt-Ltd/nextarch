@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MetricCard, ResultCard } from "../dashboard-components";
+import { MetricCard, ResultCard, ValidationAlert } from "../dashboard-components";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import "katex/dist/katex.min.css";
@@ -28,10 +28,14 @@ export default function Windowcalculations() {
     });
     const [result, setResult] = useState<ResultData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState<Record<string, boolean>>({});
+    const [errorList, setErrorList] = useState<string[]>([]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const parsed = parseFloat(value);
+        setErrors(prev => ({ ...prev, [name]: false }));
+        if (errorList.length > 0) setErrorList([]);
         setValues(prev => ({ ...prev, [name]: isNaN(parsed) ? 0 : Math.abs(parsed) }));
     };
 
@@ -39,6 +43,41 @@ export default function Windowcalculations() {
     const calculatedQ = V_room * n_ach;
 
     const handleCalculate = async () => {
+        const newErrors: Record<string, boolean> = {};
+        const missing: string[] = [];
+
+        if (!V_room || V_room <= 0) {
+            newErrors.V_room = true;
+            missing.push("Room Volume (V)");
+        }
+        if (!n_ach || n_ach <= 0) {
+            newErrors.n_ach = true;
+            missing.push("Air Changes per Hour (n)");
+        }
+        if (!K || K <= 0) {
+            newErrors.K = true;
+            missing.push("Flow Coefficient (K)");
+        }
+        if (equalOpenings) {
+            if (!V || V <= 0) {
+                newErrors.V = true;
+                missing.push("Wind Speed (V)");
+            }
+        } else {
+            if (!A_effective || A_effective <= 0) {
+                newErrors.A_effective = true;
+                missing.push("Effective Area (A_effective)");
+            }
+        }
+
+        if (missing.length > 0) {
+            setErrors(newErrors);
+            setErrorList(missing);
+            return;
+        }
+
+        setErrors({});
+        setErrorList([]);
         setLoading(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -87,8 +126,8 @@ export default function Windowcalculations() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                 <div className="lg:col-span-8 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <MetricCard label="Room Volume (V)" value={V_room} unit="m³" name="V_room" onChange={handleChange} />
-                        <MetricCard label="Air Changes per Hour (n)" value={n_ach} unit="ACH" name="n_ach" onChange={handleChange} />
+                        <MetricCard label="Room Volume (V)" value={V_room} unit="m³" name="V_room" onChange={handleChange} error={errors.V_room} />
+                        <MetricCard label="Air Changes per Hour (n)" value={n_ach} unit="ACH" name="n_ach" onChange={handleChange} error={errors.n_ach} />
                     </div>
 
                     {/* Derived Q display */}
@@ -106,13 +145,14 @@ export default function Windowcalculations() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <MetricCard label="Flow Coefficient (K)" value={K} unit="" name="K" step={0.05} onChange={handleChange} />
+                        <MetricCard label="Flow Coefficient (K)" value={K} unit="" name="K" step={0.05} onChange={handleChange} error={errors.K} />
                         <MetricCard
                             label="Wind Speed (V)"
                             value={V}
                             unit="m/h"
                             name="V"
                             onChange={handleChange}
+                            error={errors.V}
                             subLabel={V > 0 ? `≈ ${(V / 3600).toFixed(2)} m/s (from EPW or manual)` : "From EPW or manual"}
                         />
                     </div>
@@ -120,6 +160,8 @@ export default function Windowcalculations() {
                     {/* Interactive EPW Weather Viewer */}
                     <EpwViewer
                         onSelectHour={(data) => {
+                            setErrors(prev => ({ ...prev, V: false }));
+                            if (errorList.length > 0) setErrorList([]);
                             setValues(prev => ({ ...prev, V: Math.round(data.wind_speed_mh) }));
                         }}
                     />
@@ -131,7 +173,11 @@ export default function Windowcalculations() {
                             <p className="text-xs mt-0.5" style={{ color: labelColor }}>Inlet = Outlet area (simplified calculation)</p>
                         </div>
                         <button
-                            onClick={() => setEqualOpenings(!equalOpenings)}
+                            onClick={() => {
+                                setEqualOpenings(!equalOpenings);
+                                setErrors(prev => ({ ...prev, V: false, A_effective: false }));
+                                setErrorList([]);
+                            }}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${equalOpenings ? 'bg-[#1A73E8]' : ''}`}
                             style={!equalOpenings ? { background: isDark ? "#374151" : "#cbd5e1" } : {}}
                         >
@@ -141,7 +187,7 @@ export default function Windowcalculations() {
 
                     {!equalOpenings && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <MetricCard label="Effective Area (A_effective)" value={A_effective} unit="m²" name="A_effective" step={0.1} onChange={handleChange} />
+                            <MetricCard label="Effective Area (A_effective)" value={A_effective} unit="m²" name="A_effective" step={0.1} onChange={handleChange} error={errors.A_effective} />
                             <div className="rounded-2xl p-5" style={{ background: cardBg, border: cardBorder }}>
                                 <Label className="text-xs uppercase tracking-wider font-bold mb-3 block" style={{ color: subtitleColor }}>Calculate For:</Label>
                                 <div className="flex gap-4">
@@ -163,6 +209,9 @@ export default function Windowcalculations() {
                             </div>
                         </div>
                     )}
+
+                    {/* Validation Alert */}
+                    <ValidationAlert errors={errorList} onDismiss={() => setErrorList([])} />
 
                     <div className="flex justify-end">
                         <Button

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MetricCard, ResultCard } from "../dashboard-components";
+import { MetricCard, ResultCard, ValidationAlert } from "../dashboard-components";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Info, AlertCircle } from "lucide-react";
 import "katex/dist/katex.min.css";
@@ -24,16 +24,63 @@ export default function Voaqwqtforce() {
     });
     const [result, setResult] = useState<ResultData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState<Record<string, boolean>>({});
+    const [errorList, setErrorList] = useState<string[]>([]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const parsed = parseFloat(value);
+        setErrors(prev => ({ ...prev, [name]: false }));
+        if (errorList.length > 0) setErrorList([]);
         setValues(prev => ({ ...prev, [name]: isNaN(parsed) ? 0 : Math.abs(parsed) }));
     };
 
     const { A_inlet, h, t_i, t_o, A_smaller, V, K } = values;
 
     const handleCalculate = async () => {
+        const newErrors: Record<string, boolean> = {};
+        const missing: string[] = [];
+
+        const hasThermalInput = A_inlet > 0 || h > 0;
+        const hasWindInput = A_smaller > 0 || V > 0;
+
+        if (!hasThermalInput && !hasWindInput) {
+            newErrors.A_inlet = true;
+            newErrors.h = true;
+            newErrors.A_smaller = true;
+            newErrors.V = true;
+            missing.push("Thermal Flow (Inlet Area & Height Diff) or Wind Flow (Smaller Area & Wind Speed)");
+        } else {
+            if (hasThermalInput) {
+                if (!A_inlet || A_inlet <= 0) {
+                    newErrors.A_inlet = true;
+                    missing.push("Inlet Area (A)");
+                }
+                if (!h || h <= 0) {
+                    newErrors.h = true;
+                    missing.push("Height Diff (h)");
+                }
+            }
+            if (hasWindInput) {
+                if (!A_smaller || A_smaller <= 0) {
+                    newErrors.A_smaller = true;
+                    missing.push("Smaller Area (As)");
+                }
+                if (!V || V <= 0) {
+                    newErrors.V = true;
+                    missing.push("Wind Speed (V)");
+                }
+            }
+        }
+
+        if (missing.length > 0) {
+            setErrors(newErrors);
+            setErrorList(missing);
+            return;
+        }
+
+        setErrors({});
+        setErrorList([]);
         setLoading(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -77,18 +124,20 @@ export default function Voaqwqtforce() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
                 <div className="lg:col-span-8 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <MetricCard label="Inlet Area (A)" value={A_inlet} unit="m²" name="A_inlet" onChange={handleChange} />
-                        <MetricCard label="Height Diff (h)" value={h} unit="m" name="h" onChange={handleChange} />
+                        <MetricCard label="Inlet Area (A)" value={A_inlet} unit="m²" name="A_inlet" onChange={handleChange} error={errors.A_inlet} />
+                        <MetricCard label="Height Diff (h)" value={h} unit="m" name="h" onChange={handleChange} error={errors.h} />
                         <MetricCard label="Indoor Temp (ti)" value={t_i} unit="°C" name="t_i" onChange={handleChange} />
-                        <MetricCard label="Smaller Area (As)" value={A_smaller} unit="m²" name="A_smaller" onChange={handleChange} />
+                        <MetricCard label="Smaller Area (As)" value={A_smaller} unit="m²" name="A_smaller" onChange={handleChange} error={errors.A_smaller} />
                         <MetricCard label="Eff. Coeff (K)" value={K} unit="" name="K" step={0.1} onChange={handleChange} />
                         <MetricCard label="Outdoor Temp (to)" value={t_o} unit="°C" name="t_o" onChange={handleChange} />
-                        <MetricCard label="Wind Speed (V)" value={V} unit="m/h" name="V" onChange={handleChange} />
+                        <MetricCard label="Wind Speed (V)" value={V} unit="m/h" name="V" onChange={handleChange} error={errors.V} />
                     </div>
 
                     {/* Interactive EPW Weather Viewer */}
                     <EpwViewer
                         onSelectHour={(data) => {
+                            setErrors(prev => ({ ...prev, V: false }));
+                            if (errorList.length > 0) setErrorList([]);
                             setValues(prev => ({
                                 ...prev,
                                 t_o: data.temperature,
@@ -96,6 +145,9 @@ export default function Voaqwqtforce() {
                             }));
                         }}
                     />
+
+                    {/* Validation Alert */}
+                    <ValidationAlert errors={errorList} onDismiss={() => setErrorList([])} />
 
                     <div className="flex justify-end">
                         <Button
@@ -205,7 +257,7 @@ export default function Voaqwqtforce() {
                                     Why is Thermal Flow 0?
                                 </p>
                                 <p>
-                                    Thermal ventilation is driven by <strong className="text-[#1A73E8]">thermal buoyancy</strong> (stack effect). Warm indoor air is lighter than cool outdoor air and rises through upper openings. If outdoor air is warmer than or equal to indoor air (<span className="font-mono font-semibold">ti ≤ to</span>), buoyant upward flow stops and <span className="font-mono">Qt = 0</span>.
+                                    Thermal ventilation is driven by <strong className="text-[#1A73E8]"><a href="https://en.wikipedia.org/wiki/Stack_effect">stack effect</a></strong> (stack effect). Warm indoor air is lighter than cool outdoor air and rises through upper openings. If outdoor air is warmer than or equal to indoor air (<span className="font-mono font-semibold">ti ≤ to</span>), buoyant upward flow stops and <span className="font-mono">Qt = 0</span>.
                                 </p>
                             </div>
 
@@ -216,7 +268,7 @@ export default function Voaqwqtforce() {
                                     Night Flushing Behavior
                                 </p>
                                 <p>
-                                    In night flushing strategies, outdoor air cools the building thermal mass. Once indoor temperatures drop equal to or below outdoor night air (<span className="font-mono font-semibold">ti ≤ to</span>), the stack effect no longer contributes. The building then relies entirely on <strong className="text-[#1A73E8]">wind-driven cross-ventilation (Qw)</strong>.
+                                    In night flushing strategies, outdoor air cools the building thermal mass. Once indoor temperatures drop equal to or below outdoor night air (<span className="font-mono font-semibold">ti ≤ to</span>), the stack effect no longer contributes. The building then relies entirely on <strong className="text-[#1A73E8]"><a href="https://en.wikipedia.org/wiki/Cross_ventilation">wind-driven cross-ventilation (Qw)</a></strong>.
                                 </p>
                             </div>
 

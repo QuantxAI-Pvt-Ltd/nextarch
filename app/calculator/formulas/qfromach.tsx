@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MetricCard, ResultCard } from "../dashboard-components";
+import { MetricCard, ResultCard, ValidationAlert } from "../dashboard-components";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import "katex/dist/katex.min.css";
@@ -28,12 +28,18 @@ export default function Qfromach() {
     });
     const [result, setResult] = useState<ResultData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState<Record<string, boolean>>({});
+    const [errorList, setErrorList] = useState<string[]>([]);
 
     // ── Input handler ─────────────────────────────────────────────────────────
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const parsed = parseFloat(value);
         const val = isNaN(parsed) ? 0 : Math.abs(parsed);
+
+        setErrors(prev => ({ ...prev, [name]: false }));
+        if (errorList.length > 0) setErrorList([]);
+
         setValues((prev) => {
             const next = { ...prev, [name]: val };
             if (name === "t_i" || name === "t_o") {
@@ -47,6 +53,34 @@ export default function Qfromach() {
 
     // ── API calculate ─────────────────────────────────────────────────────────
     const handleCalculate = async () => {
+        const newErrors: Record<string, boolean> = {};
+        const missing: string[] = [];
+
+        if (!ACH || ACH <= 0) {
+            newErrors.ACH = true;
+            missing.push("Air Changes (ACH)");
+        }
+        if (!V || V <= 0) {
+            newErrors.V = true;
+            missing.push("Room Volume (V)");
+        }
+        if (!rho || rho <= 0) {
+            newErrors.rho = true;
+            missing.push("Air Density (ρ)");
+        }
+        if (!Cp || Cp <= 0) {
+            newErrors.Cp = true;
+            missing.push("Specific Heat (Cp)");
+        }
+
+        if (missing.length > 0) {
+            setErrors(newErrors);
+            setErrorList(missing);
+            return;
+        }
+
+        setErrors({});
+        setErrorList([]);
         setLoading(true);
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -90,10 +124,10 @@ export default function Qfromach() {
                 <div className="lg:col-span-8 space-y-6">
                     {/* Input cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <MetricCard label="Air Changes (ACH)" value={ACH} unit="h⁻¹" name="ACH" onChange={handleChange} />
-                        <MetricCard label="Room Volume (V)" value={V} unit="m³" name="V" onChange={handleChange} />
-                        <MetricCard label="Air Density (ρ)" value={rho} unit="kg/m³" name="rho" step={0.01} onChange={handleChange} />
-                        <MetricCard label="Specific Heat (Cp)" value={Cp} unit="J/kg·K" name="Cp" onChange={handleChange} />
+                        <MetricCard label="Air Changes (ACH)" value={ACH} unit="h⁻¹" name="ACH" onChange={handleChange} error={errors.ACH} />
+                        <MetricCard label="Room Volume (V)" value={V} unit="m³" name="V" onChange={handleChange} error={errors.V} />
+                        <MetricCard label="Air Density (ρ)" value={rho} unit="kg/m³" name="rho" step={0.01} onChange={handleChange} error={errors.rho} />
+                        <MetricCard label="Specific Heat (Cp)" value={Cp} unit="J/kg·K" name="Cp" onChange={handleChange} error={errors.Cp} />
                         <MetricCard label="Indoor Temp (ti)" value={t_i} unit="°C" name="t_i" onChange={handleChange} />
                         <MetricCard label="Outdoor Temp (to)" value={t_o} unit="°C" name="t_o" onChange={handleChange} subLabel="Manual or from EPW" />
                         <MetricCard label="Temp. Diff (ΔT)" value={delta_T} unit="K" subLabel="|ti - to| (View only)" />
@@ -110,6 +144,9 @@ export default function Qfromach() {
                             }));
                         }}
                     />
+
+                    {/* Validation Alert */}
+                    <ValidationAlert errors={errorList} onDismiss={() => setErrorList([])} />
 
                     <div className="flex justify-end">
                         <Button

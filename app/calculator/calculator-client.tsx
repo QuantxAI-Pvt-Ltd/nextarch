@@ -61,13 +61,13 @@ function CalculatorContent() {
 
   const renderCalculator = () => {
     switch (mode) {
-      case "window-calculations":   return <Windowcalculations />;
-      case "volume-heat-gain":      return <Volumeofairheatgain />;
-      case "volume-forces":         return <Voaqwqtforce />;
-      case "q-from-ach":            return <Qfromach />;
-      case "by-element":            return <Byelement />;
-      case "solar-heat-gain":       return <SolarHeatGain />;
-      default:                      return <Windowcalculations />;
+      case "window-calculations": return <Windowcalculations />;
+      case "volume-heat-gain": return <Volumeofairheatgain />;
+      case "volume-forces": return <Voaqwqtforce />;
+      case "q-from-ach": return <Qfromach />;
+      case "by-element": return <Byelement />;
+      case "solar-heat-gain": return <SolarHeatGain />;
+      default: return <Windowcalculations />;
     }
   };
 
